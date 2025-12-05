@@ -10,6 +10,7 @@ import com.microservice_demo.demo_service_1.service.interfaces.DemoEntity1Servic
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,32 +23,33 @@ public class DemoEntity1Controller {
     private final DemoEntity1ServiceInterface service;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public DemoEntity1Dto create(@RequestBody CreateDemoEntity1Dto dto) {
         return service.create(dto);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public DemoEntity1Dto get(@PathVariable Long id) {
         return service.getEntity(id);
     }
 
-    //    1 user have 2 DemoEntity1 is returning an error
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public DemoEntity1Dto getByUser(@PathVariable Long userId) {
         return service.getDemoEntity1ByUserId(userId);
     }
 
-    // NEW: return DemoEntity1 for DemoService2
-
+    // For Feign client calls (internal service-to-service communication)
     @GetMapping("/entity/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public DemoEntity1Dto getEntityForFeign(@PathVariable Long id) {
         return service.getDemoEntity1(id);
     }
 
-    // NEW: return user list for DemoService2
     @PostMapping("/users/list")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public List<UserDto> getUsersByIdList(@RequestBody List<Long> userIds) {
         return service.getUsersByIds(userIds);
     }
-
 }
