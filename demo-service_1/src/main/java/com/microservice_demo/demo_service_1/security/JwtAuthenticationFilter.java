@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,40 +23,77 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenValidator jwtTokenValidator;
 
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String username = request.getHeader("X-User-Username");
+        // 1️⃣ Gateway forwarded headers
+        String usernameHeader = request.getHeader("X-User-Username");
         String rolesHeader = request.getHeader("X-User-Roles");
 
+        // 2️⃣ Normal Authorization: Bearer token
         String authHeader = request.getHeader("Authorization");
         String token = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")){
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
         }
 
-        if (username != null && rolesHeader != null && SecurityContextHolder.getContext().getAuthentication() == null){
-            List<SimpleGrantedAuthority> authorities = List.of(rolesHeader.split(","))
-                    .stream()
+        // 🔹 First preference: Use Gateway headers
+        if (usernameHeader != null &&
+                rolesHeader != null &&
+                SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            // Clean role header → remove brackets, quotes, whitespace
+            String cleanedRoleString = rolesHeader
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .trim();
+
+            List<SimpleGrantedAuthority> authorities = Arrays.stream(cleanedRoleString.split(","))
+                    .map(String::trim)
+                    .filter(role -> !role.isEmpty())
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username , null , authorities);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            usernameHeader,
+                            null,
+                            authorities
+                    );
 
-            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-        } else if (token != null && jwtTokenValidator.validateToken(token)) {
-            username = jwtTokenValidator.getUsername(token);
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+
+        // 🔹 Second preference: Validate JWT if gateway headers missing
+        else if (token != null &&
+                jwtTokenValidator.validateToken(token) &&
+                SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            String username = jwtTokenValidator.getUsername(token);
             List<String> roles = jwtTokenValidator.getRoles(token);
 
-            List<SimpleGrantedAuthority> authorities = roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+            List<SimpleGrantedAuthority> authorities = roles.stream()
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
 
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username , null , authorities);
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            username,
+                            null,
+                            authorities
+                    );
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
-        filterChain.doFilter(request , response);
+
+        filterChain.doFilter(request, response);
     }
 }

@@ -11,14 +11,11 @@ import com.microservice_demo.demo_service_1.repository.DemoEntity1Repository;
 import com.microservice_demo.demo_service_1.repository.UserRepository;
 import com.microservice_demo.demo_service_1.service.interfaces.DemoEntity1ServiceInterface;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +26,7 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
 
     @Override
     public DemoEntity1Dto create(CreateDemoEntity1Dto request) {
+
         Users user = usersRepo.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.getUserId()));
 
@@ -66,24 +64,26 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
         return toDto(entity);
     }
 
-    // NEW METHOD — used by DemoService2
     @Override
     public List<UserDto> getUsersByIds(List<Long> userIds) {
 
         List<Users> users = usersRepo.findAllById(userIds);
-//        if(users.isEmpty()) throw new ResourceNotFoundException("No users found");
 
         List<UserDto> dtos = new ArrayList<>();
 
-        for(Users u : users) {
+        for (Users u : users) {
             UserDto dto = new UserDto();
             dto.setUserId(u.getUserId());
             dto.setName(u.getName());
             dto.setEmail(u.getEmail());
             dto.setPhone(u.getPhone());
-            dto.setUserRole(u.getRole().name());
+
+            // 🔥 FIXED: role is Set<String>, not Enum
+            dto.setUserRole(String.join(",", u.getRole()));
+
             dto.setDe1ConnectionFlag(u.isDe1ConnectionFlag());
             dto.setDe2ConnectionFlag(u.isDe2ConnectionFlag());
+
             dtos.add(dto);
         }
 
@@ -99,34 +99,29 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
         return dto;
     }
 
-    private Date convertLocalDateToDate(LocalDateTime date){
-        if (date == null){
-            return null;
-        }
+    private Date convertLocalDateToDate(LocalDateTime date) {
+        if (date == null) return null;
         return Date.from(date.atZone(ZoneId.systemDefault()).toInstant());
     }
 
-    private LocalDateTime convertDateToLocalDate(Date date){
-        if (date == null){
-            return null;
-        }
+    private LocalDateTime convertDateToLocalDate(Date date) {
+        if (date == null) return null;
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
-    private String mapStatusToString(EntityStatus entityStatus){
-        return (switch (entityStatus) {
+    private String mapStatusToString(EntityStatus entityStatus) {
+        return switch (entityStatus) {
             case STATUS1 -> "Status1";
             case STATUS2 -> "Status2";
             case STATUS3 -> "Status3";
-        });
-    }
-
-    private EntityStatus mapStringToStatus(String status){
-        return switch (status.toUpperCase()){
-            case "STATUS1" -> EntityStatus.STATUS1;
-            case "STATUS2" -> EntityStatus.STATUS2;
-            default-> EntityStatus.STATUS3;
         };
     }
 
+    private EntityStatus mapStringToStatus(String status) {
+        return switch (status.toUpperCase()) {
+            case "STATUS1" -> EntityStatus.STATUS1;
+            case "STATUS2" -> EntityStatus.STATUS2;
+            default -> EntityStatus.STATUS3;
+        };
+    }
 }

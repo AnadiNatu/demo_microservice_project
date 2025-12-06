@@ -2,39 +2,48 @@ package com.microservice_demo.demo_service_1.service;
 
 import com.microservice_demo.demo_service_1.dto.CreateUserDto;
 import com.microservice_demo.demo_service_1.entity.Users;
-import com.microservice_demo.demo_service_1.enums.UserRoles;
 import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_1.repository.UserRepository;
 import com.microservice_demo.demo_service_1.service.interfaces.UserServiceInterface;
-//import jakarta.mail.Multipart;
-import lombok.*;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserServiceInterface {
 
-    @Autowired
-    private UserRepository repo;
+    private final UserRepository repo;
 
     private final String uploadFolder = "C:/user-profile-photos/";
 
     @Override
     public Users createUser(CreateUserDto dto) {
+
         Users user = new Users();
 
-                user.setName(dto.getName());
-                user.setEmail(dto.getEmail());
-                user.setPhone(dto.getPhone());
-                user.setRole(UserRoles.valueOf(dto.getUserRole()));
-                user.setDe1ConnectionFlag(false);
-                user.setDe2ConnectionFlag(false);
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhone());
+
+        // ✅ FIX: Convert single role string → Set<String>
+        Set<String> roles = new HashSet<>();
+        roles.add(dto.getUserRole().startsWith("ROLE_")
+                ? dto.getUserRole()
+                : "ROLE_" + dto.getUserRole().toUpperCase());
+
+        user.setRole(roles);
+
+        user.setDe1ConnectionFlag(false);
+        user.setDe2ConnectionFlag(false);
+
         return repo.save(user);
     }
 
@@ -55,7 +64,7 @@ public class UserService implements UserServiceInterface {
             Files.write(Paths.get(filePath), file.getBytes());
             return "Uploaded to: " + filePath;
         } catch (Exception ex) {
-            throw new RuntimeException(ex.getMessage());
+            throw new RuntimeException("Error uploading photo: " + ex.getMessage());
         }
     }
 
@@ -70,7 +79,7 @@ public class UserService implements UserServiceInterface {
 
             return Files.readAllBytes(files[0].toPath());
         } catch (Exception ex) {
-            throw new RuntimeException(ex.getMessage());
+            throw new RuntimeException("Error reading photo: " + ex.getMessage());
         }
     }
 

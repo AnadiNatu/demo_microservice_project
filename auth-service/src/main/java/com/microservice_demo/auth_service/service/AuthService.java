@@ -56,7 +56,8 @@ public class AuthService {
                 .roles(roles)
                 .enabled(true)
                 .accountNonExpired(true)
-                .credentialNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
                 .build();
         userRepository.save(user);
 
