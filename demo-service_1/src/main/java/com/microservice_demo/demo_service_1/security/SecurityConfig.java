@@ -15,7 +15,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -47,6 +46,7 @@ public class SecurityConfig {
                 // Route permissions
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()     // health checks
+                        .requestMatchers("/api/users/sync").permitAll()  // 🔥 Allow sync endpoint without auth
                         .anyRequest().authenticated()                    // everything else secured
                 )
 

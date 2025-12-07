@@ -30,6 +30,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // Skip authentication for sync endpoint
+        if (request.getRequestURI().contains("/api/users/sync")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // 1️⃣ Gateway forwarded headers
         String usernameHeader = request.getHeader("X-User-Username");
         String rolesHeader = request.getHeader("X-User-Roles");

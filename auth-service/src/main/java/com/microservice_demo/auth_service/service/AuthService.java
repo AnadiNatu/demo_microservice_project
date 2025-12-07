@@ -2,6 +2,8 @@ package com.microservice_demo.auth_service.service;
 
 import com.microservice_demo.auth_service.dto.*;
 import com.microservice_demo.auth_service.entity.Users;
+import com.microservice_demo.auth_service.feign.DemoService1FeignClient;
+import com.microservice_demo.auth_service.feign.DemoService2FeignClient;
 import com.microservice_demo.auth_service.repository.UserRepository;
 import com.microservice_demo.auth_service.security.JwtTokenProvider;
 import com.microservice_demo.auth_service.security.UserDetailsServiceImpl;
@@ -26,6 +28,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
 
+    private final DemoService1FeignClient demoService1Client;
+    private final DemoService2FeignClient demoService2Client;
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
 
@@ -49,6 +54,7 @@ public class AuthService {
                 }
             });
         }
+
         Users user = Users.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -60,6 +66,8 @@ public class AuthService {
                 .credentialsNonExpired(true)
                 .build();
         userRepository.save(user);
+
+        syncUserToMicroservices(user);
 
 //        Auto-login after registration
         Authentication authentication = authenticationManager.authenticate(
@@ -160,5 +168,42 @@ public class AuthService {
         }
     }
 
+    public UserSyncDto getUserSyncData(Long userId){
+        Users user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
+        return UserSyncDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .roles(user.getRoles())
+                .build();
+    }
+
+    private void syncUserToMicroservices(Users user){
+        try{
+            UserSyncDto syncDto = UserSyncDto.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .roles(user.getRoles())
+                    .build();
+
+            try{
+                demoService1Client.syncUser(syncDto);
+                System.out.println("User synced to Demo-Service1");
+            }catch (Exception ex){
+                System.err.println("Failed to sync to Demo-Service1: " + ex.getMessage());
+            }
+
+            try{
+                demoService2Client.syncUser(syncDto);
+                System.out.println("User synced to Demo-Service2");
+            }catch (Exception ex){
+                System.out.println("Failed to sync to Demo-Service2: " + ex.getMessage());
+            }
+        }catch (Exception ex){
+            System.err.println("User sync failed: " + ex.getMessage());
+        }
+
+    }
 }

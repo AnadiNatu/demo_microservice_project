@@ -14,6 +14,9 @@ public class RouteValidator {
             "/api/auth/login",
             "/api/auth/refresh",
             "/api/auth/health",
+            "/api/users/sync",
+            "/api/en2/sync",
+            "api/en2/user/{id}",
             "/eureka"
     );
 

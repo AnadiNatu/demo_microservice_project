@@ -14,6 +14,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -27,24 +28,48 @@ public class UserService implements UserServiceInterface {
     @Override
     public Users createUser(CreateUserDto dto) {
 
+        Optional<Users> existingByEmail = repo.findAll().stream()
+                .filter(u -> u.getEmail().equals(dto.getEmail()))
+                .findFirst();
+
+        if (existingByEmail.isPresent()) {
+            System.out.println("⚠️ User already exists with email: " + dto.getEmail());
+            return existingByEmail.get(); // Return existing user instead of creating duplicate
+        }
+
         Users user = new Users();
 
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        user.setPhone(dto.getPhone());
+        user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
 
-        // ✅ FIX: Convert single role string → Set<String>
+        // ✅ Convert single role string → Set<String>
         Set<String> roles = new HashSet<>();
-        roles.add(dto.getUserRole().startsWith("ROLE_")
-                ? dto.getUserRole()
-                : "ROLE_" + dto.getUserRole().toUpperCase());
+        String roleStr = dto.getUserRole();
+
+        // Handle "ROLE_ADMIN", "ADMIN", or null/empty
+        if (roleStr != null && !roleStr.isEmpty()) {
+            roles.add(roleStr.startsWith("ROLE_")
+                    ? roleStr
+                    : "ROLE_" + roleStr.toUpperCase());
+        } else {
+            roles.add("ROLE_USER"); // default role
+        }
 
         user.setRole(roles);
-
         user.setDe1ConnectionFlag(false);
         user.setDe2ConnectionFlag(false);
 
-        return repo.save(user);
+        // 🔥 Security flags (MUST be set for Spring Security UserDetails)
+        user.setEnabled(true);
+        user.setAccountNonExpired(true);
+        user.setAccountNonLocked(true);
+        user.setCredentialsNonExpired(true);
+
+        Users saved = repo.save(user);
+        System.out.println("✅ User created in Demo-Service1: " + saved.getEmail());
+
+        return saved;
     }
 
     @Override

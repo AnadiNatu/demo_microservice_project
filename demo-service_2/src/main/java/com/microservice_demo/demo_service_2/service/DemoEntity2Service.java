@@ -4,21 +4,25 @@ import com.microservice_demo.demo_service_2.dto.*;
 import com.microservice_demo.demo_service_2.entity.DemoEntity2;
 import com.microservice_demo.demo_service_2.entity.Users;
 import com.microservice_demo.demo_service_2.enums.EntityStatus;
+import com.microservice_demo.demo_service_2.enums.UserRoles;
 import com.microservice_demo.demo_service_2.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_2.feign.DemoService1FeignClient;
 import com.microservice_demo.demo_service_2.repository.DemoEntity2Repository;
+import com.microservice_demo.demo_service_2.repository.UserRepository;
 import com.microservice_demo.demo_service_2.service.interfaces.DemoEntity2ServiceInterface;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     private final DemoEntity2Repository repo;
     private final DemoService1FeignClient feign;
+    private final UserRepository userRepo;
 
 
 
@@ -70,7 +74,39 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         return toDto(repo.save(entity));
     }
 
-    // ----------- DTO Conversion Using Feign -----------
+    @Override
+    public Users createUser(CreateUserDto dto) {
+        Optional<Users> existing = userRepo.findAll().stream().filter(u -> u.getEmail().equals(dto.getEmail())).findFirst();
+
+        if (existing.isPresent()){
+            return existing.get();
+        }
+
+        Users user = new Users();
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhone());
+
+        try{
+            UserRoles roleEnum = UserRoles.valueOf(
+                    dto.getUserRole().replace("ROLE_" , "").toUpperCase());
+
+            user.setRole(roleEnum);
+        }catch (Exception ex){
+            user.setRole(UserRoles.USER);
+        }
+
+        user.setDe1ConnectionFlag(false);
+        user.setDe2ConnectionFlag(false);
+
+        return userRepo.save(user);
+    }
+
+    @Override
+    public Users getUser(Long id) {
+        return userRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+    }
+
     private DemoEntity2Dto toDto(DemoEntity2 entity) {
 
         DemoEntity2Dto dto = new DemoEntity2Dto();

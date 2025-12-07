@@ -1,9 +1,7 @@
 package com.microservice_demo.demo_service_2.controller;
 
-import com.microservice_demo.demo_service_2.dto.AddUserListAndDE1ToDE2Dto;
-import com.microservice_demo.demo_service_2.dto.AddUserToListDE1ForDE2Dto;
-import com.microservice_demo.demo_service_2.dto.CreateDemoEntity2Dto;
-import com.microservice_demo.demo_service_2.dto.DemoEntity2Dto;
+import com.microservice_demo.demo_service_2.dto.*;
+import com.microservice_demo.demo_service_2.entity.Users;
 import com.microservice_demo.demo_service_2.service.DemoEntity2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,5 +36,26 @@ public class DemoEntity2Controller {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public DemoEntity2Dto addUser(@RequestBody AddUserToListDE1ForDE2Dto dto) {
         return service.addUserToDemoEntity2(dto);
+    }
+
+    @PostMapping("/sync")
+    public String syncUser(@RequestBody UserSyncDto syncDto){
+        CreateUserDto dto = new CreateUserDto();
+        dto.setName(syncDto.getUsername());
+        dto.setEmail(syncDto.getEmail());
+        dto.setPhone("");
+
+        String role = syncDto.getRoles().isEmpty() ? "USER" : syncDto.getRoles().iterator().next();
+
+        dto.setUserRole(role);
+        service.createUser(dto);
+
+        return "User synced successfully";
+    }
+
+    @GetMapping("/user/{id}")
+    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
+    public Users getUsers(@PathVariable Long id){
+        return service.getUser(id);
     }
 }
