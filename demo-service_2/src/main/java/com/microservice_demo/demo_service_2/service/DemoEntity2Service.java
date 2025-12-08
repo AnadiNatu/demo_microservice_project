@@ -24,8 +24,6 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     private final DemoService1FeignClient feign;
     private final UserRepository userRepo;
 
-
-
     @Override
     public DemoEntity2Dto create(CreateDemoEntity2Dto dto) {
 
@@ -37,7 +35,6 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
                 .userIds(new ArrayList<>())
                 .demoEn1Id(null)
                 .build();
-
         return toDto(repo.save(entity));
     }
 
@@ -45,32 +42,24 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     public DemoEntity2Dto get(Long id) {
         DemoEntity2 entity = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
-
         return toDto(entity);
     }
 
-
     @Override
     public DemoEntity2Dto addUsersAndDemoEntity1(AddUserListAndDE1ToDE2Dto dto) {
-
         DemoEntity2 entity = repo.findById(dto.getDemoEn2Id())
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
-
         // store IDs only
         entity.getUserIds().addAll(dto.getUserIds());
         entity.setDemoEn1Id(dto.getDemoEn1Id());
-
         return toDto(repo.save(entity));
     }
 
     @Override
     public DemoEntity2Dto addUserToDemoEntity2(AddUserToListDE1ForDE2Dto dto) {
-
         DemoEntity2 entity = repo.findById(dto.getDemoEn2Id())
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
-
         entity.getUserIds().add(dto.getUserId());
-
         return toDto(repo.save(entity));
     }
 
@@ -81,24 +70,19 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         if (existing.isPresent()){
             return existing.get();
         }
-
         Users user = new Users();
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone());
-
         try{
             UserRoles roleEnum = UserRoles.valueOf(
                     dto.getUserRole().replace("ROLE_" , "").toUpperCase());
-
             user.setRole(roleEnum);
         }catch (Exception ex){
             user.setRole(UserRoles.USER);
         }
-
         user.setDe1ConnectionFlag(false);
         user.setDe2ConnectionFlag(false);
-
         return userRepo.save(user);
     }
 
@@ -108,7 +92,6 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     }
 
     private DemoEntity2Dto toDto(DemoEntity2 entity) {
-
         DemoEntity2Dto dto = new DemoEntity2Dto();
 
         dto.setDemoEn2Id(entity.getDemoEn2Id());
@@ -119,7 +102,6 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
 
         List<Long> ids = entity.getUserIds();
         List<UserDto> users = feign.getUsersByIdList(ids);
-
         dto.setUserId(ids);
 
         if (users != null && !users.isEmpty()) {
@@ -127,12 +109,10 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         } else {
             dto.setUserName(new ArrayList<>());
         }
-
         if (entity.getDemoEn1Id() != null) {
             DemoEntity1Dto de1 = feign.getDemoEntity1ForEn2(entity.getDemoEn1Id());
             dto.setDe1Id(de1.getDemoEn1Id());
         }
-
         return dto;
     }
 }

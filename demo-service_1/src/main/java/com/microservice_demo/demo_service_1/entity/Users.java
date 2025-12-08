@@ -29,7 +29,6 @@ public class Users implements UserDetails {
     private String email;
 
     private String phone;
-
     /**
      * Stores roles coming from AUTH-SERVICE → Gateway → Demo-Service1
      * Example: ["ROLE_USER", "ROLE_ADMIN"]
@@ -40,7 +39,6 @@ public class Users implements UserDetails {
     private Set<String> role = new HashSet<>();
 
     // --- SECURITY FLAGS (MUST MATCH SPRING USERDETAILS) ---
-
     private boolean accountNonExpired = true;
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
@@ -63,8 +61,6 @@ public class Users implements UserDetails {
     protected void onUpdate() {
         updatedOn = LocalDateTime.now();
     }
-
-    // --- IMPLEMENT REQUIRED METHODS FROM USERDETAILS ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

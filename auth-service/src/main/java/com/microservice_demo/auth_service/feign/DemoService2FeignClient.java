@@ -8,6 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "demo-service2")
 public interface DemoService2FeignClient {
 
-    @PostMapping("/api/users/sync")
+    @PostMapping("/api/en2/sync")
     String syncUser(@RequestBody UserSyncDto syncDto);
 }

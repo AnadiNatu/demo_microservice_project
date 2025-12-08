@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.*;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -43,7 +44,7 @@ public class Users implements UserDetails {
     private boolean accountNonLocked = true;
 
     @Column(name = "credentials_non_expired")
-    private boolean credentialsNonExpired = true;   // ← Use only THIS ONE
+    private boolean credentialsNonExpired = true;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
