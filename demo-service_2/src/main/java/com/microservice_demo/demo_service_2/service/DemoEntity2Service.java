@@ -117,7 +117,6 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         dto.setCountField(entity.getCountField());
         dto.setPriceField(entity.getPriceField());
 
-        // FEIGN CALL: Fetch user details
         List<Long> ids = entity.getUserIds();
         List<UserDto> users = feign.getUsersByIdList(ids);
 
@@ -128,7 +127,7 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         } else {
             dto.setUserName(new ArrayList<>());
         }
-        // FEIGN CALL: Fetch DemoEntity1 details
+
         if (entity.getDemoEn1Id() != null) {
             DemoEntity1Dto de1 = feign.getDemoEntity1ForEn2(entity.getDemoEn1Id());
             dto.setDe1Id(de1.getDemoEn1Id());

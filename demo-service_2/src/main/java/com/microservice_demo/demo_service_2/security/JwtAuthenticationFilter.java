@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,47 +25,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // Get username and roles from Gateway headers
+
+        if(request.getRequestURI().contains("/api/en2/sync") ||
+        request.getRequestURI().contains("/api/en2/user/")){
+            filterChain.doFilter(request , response);
+            return;
+        }
+
         String username = request.getHeader("X-User-Username");
         String rolesHeader = request.getHeader("X-User-Roles");
 
-        // Alternatively, extract from JWT token if present
         String authHeader = request.getHeader("Authorization");
         String token = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
         }
 
-        if (username != null && rolesHeader != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // Parse roles from header
-            List<SimpleGrantedAuthority> authorities = List.of(rolesHeader.split(","))
-                    .stream()
+        if (username != null && rolesHeader != null && SecurityContextHolder.getContext().getAuthentication() == null){
+
+            String cleanedRoleString = rolesHeader
+                    .replace("[" , "")
+                    .replace("]" , "")
+                    .replace("\"" , "")
+                    .trim();
+
+            List<SimpleGrantedAuthority> authorities = Arrays.stream(cleanedRoleString.split(","))
+                    .map(String::trim)
+                    .filter(role -> !role.isEmpty())
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(username, null, authorities);
-
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-
-        } else if (token != null && jwtTokenValidator.validateToken(token)) {
-            // Fallback: Extract from token if headers not present
-            username = jwtTokenValidator.getUsername(token);
-            List<String> roles = jwtTokenValidator.getRoles(token);
-
-            List<SimpleGrantedAuthority> authorities = roles.stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(username, null, authorities);
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username , null , authorities);
 
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
-
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(request , response);
     }
 }

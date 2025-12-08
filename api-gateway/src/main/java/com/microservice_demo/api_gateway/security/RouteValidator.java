@@ -16,7 +16,9 @@ public class RouteValidator {
             "/api/auth/health",
             "/api/users/sync",
             "/api/en2/sync",
-            "api/en2/user/{id}",
+            "/api/en2/user/{id}",
+            "/api/en1/test/public",
+            "/api/en2/test/public",
             "/eureka"
     );
 
