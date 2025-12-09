@@ -20,7 +20,7 @@ public class TestController {
         return new TestResponse(
                 "success",
                 "Public endpoint - No authentication required",
-                "demo-service1",
+                "demo-service2",
                 null,
                 null,
                 LocalDateTime.now()

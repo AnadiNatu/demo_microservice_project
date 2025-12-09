@@ -204,6 +204,5 @@ public class AuthService {
         }catch (Exception ex){
             System.err.println("User sync failed: " + ex.getMessage());
         }
-
     }
 }

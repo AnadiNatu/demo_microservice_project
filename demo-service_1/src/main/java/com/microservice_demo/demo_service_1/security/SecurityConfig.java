@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()     // health checks
                         .requestMatchers("/api/users/sync").permitAll()  // 🔥 Allow sync endpoint without auth
+                        .requestMatchers("/api/en1/test/public").permitAll()
                         .anyRequest().authenticated()                    // everything else secured
                 )
 
