@@ -14,12 +14,14 @@ public class RouteValidator {
             "/api/auth/login",
             "/api/auth/refresh",
             "/api/auth/health",
-            "/api/users/sync",
-            "/api/en2/sync",
+//            "/api/users/sync",
+//            "/api/en2/sync",
+            "/api/*/sync",
             "/api/en2/user/{id}",
-            "/api/en1/test/public",
-            "/api/en2/test/public",
-            "/eureka"
+//            "/api/en1/test/public",
+//            "/api/en2/test/public",
+            "/api/*/test/public",
+            "/eureka/**"
     );
 
     public Predicate<ServerHttpRequest> isSecured = request -> openApiEndpoints.stream().noneMatch(uri -> request.getURI().getPath().contains(uri));

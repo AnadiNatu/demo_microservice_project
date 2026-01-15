@@ -17,6 +17,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -39,21 +40,39 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
+//    public String generateToken(Authentication authentication){
+//        Users userPrinciple = (Users) authentication.getPrincipal();
+//
+//        Set<String> roles = userPrinciple.getAuthorities().stream()
+//                .map(GrantedAuthority::getAuthority)
+//                .collect(Collectors.toSet());
+//
+//        return Jwts.builder().subject(userPrinciple.getUsername())
+//                .claim("roles" , roles)
+//                .claim("email" , userPrinciple.getEmail())
+//                .issuedAt(new Date())
+//                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+//                .signWith(getSigningKey())
+//                .compact();
+//    }
+
     public String generateToken(Authentication authentication){
 
-        Users userPrinciple = (Users) authentication.getPrincipal();
+        Users user = (Users) authentication.getPrincipal();
 
-        Set<String> roles = userPrinciple.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
-
-        return Jwts.builder().subject(userPrinciple.getUsername())
-                .claim("roles" , roles)
-                .claim("email" , userPrinciple.getEmail())
+        return Jwts.builder()
+                .subject(user.getUsername())
+                .claim("roles" , user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
+                .claim("email" , user.getEmail())
+                .claim("userId" , user.getId())
+                .id(UUID.randomUUID().toString())
+                .issuer("auth-service")
+                .audience().add("api-gateway").and()
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey())
                 .compact();
+
     }
 
     public String generateRefreshToken(String username){
