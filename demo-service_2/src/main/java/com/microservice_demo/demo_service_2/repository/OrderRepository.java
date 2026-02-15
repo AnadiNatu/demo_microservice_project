@@ -14,26 +14,31 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order , Long> {
+public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    Page<Order> findByUserId(Long userId , Pageable pageable);
+    Page<Order> findByUserId(Long userId, Pageable pageable);
 
-    Page<Order> findByOrderStatus(OrderStatus status , Pageable pageable);
+    Page<Order> findByOrderStatus(OrderStatus status, Pageable pageable);
 
-    Page<Order> findByUserIdAndOderStatus(Long userId , OrderStatus status , Pageable pageable);
+    Page<Order> findByUserIdAndOrderStatus(Long userId, OrderStatus status, Pageable pageable);
 
     Optional<Order> findByOrderNumber(String orderNumber);
 
-    @Query("SELECT o FROM Order o WHERE o.userId = :userId AND" + "o.orderDate BETWEEN :startDate AND :endDate")
-    Page<Order> findUserOrdersBetweenDates(@Param("userId") Long userId , @Param("startDate")LocalDateTime startDate , @Param("endDate")LocalDateTime endDate , Pageable pageable);
+    @Query("SELECT o FROM Order o WHERE o.userId = :userId AND " +
+            "o.orderDate BETWEEN :startDate AND :endDate")
+    Page<Order> findUserOrdersBetweenDates(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
+    );
 
-    @Query("SELECT o FROM Order o WHERE o.orderStatus IN : statuses")
-    Page<Order> findByOrderStatusIn(@Param("statuses")List<OrderStatus> statuses , Pageable pageable);
+    @Query("SELECT o FROM Order o WHERE o.orderStatus IN :statuses")
+    Page<Order> findByOrderStatusIn(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.userId = :userId")
-    long countByUserId(@Param("userId")Long userId);
+    long countByUserId(@Param("userId") Long userId);
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = :status")
     long countByOrderStatus(@Param("status") OrderStatus status);
-
 }

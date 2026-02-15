@@ -21,7 +21,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByActiveTrueAndCategory(String category, Pageable pageable);
 
     @Query("SELECT p FROM Product p WHERE p.active = true AND " +
-            "(LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "(LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Product> searchProducts(@Param("keyword") String keyword, Pageable pageable);
 
@@ -34,5 +34,4 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COUNT(p) FROM Product p WHERE p.active = true")
     long countActiveProducts();
-
 }

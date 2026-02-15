@@ -6,9 +6,9 @@ import com.microservice_demo.demo_service_1.entity.Product;
 import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.exception.errors.BadRequestException;
 import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
+import com.microservice_demo.demo_service_1.feign.DemoService2FeignClient;
 import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import com.microservice_demo.demo_service_1.repository.UserRepository;
-import com.microservice_demo.demo_service_1.service.interfaces.DemoEntity1ServiceInterface;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final DemoEntity1ServiceInterface demoService2Client;
+    private final DemoService2FeignClient demoService2Client;
 
     @Transactional
     @CacheEvict(value = "products" , allEntries = true)
@@ -143,7 +143,7 @@ public class ProductService {
         product.setStockQuantity(quantity);
         Product updated = productRepository.save(product);
 
-        log.info("Stock updated successfully for product: {}", product.getProductName());
+        log.info("Stock updated successfully for product: {}", product.getName());
         return toDto(updated);
     }
 
@@ -205,5 +205,4 @@ public class ProductService {
                 .updatedOn(product.getUpdatedOn())
                 .build();
     }
-
 }

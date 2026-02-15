@@ -23,12 +23,9 @@ import java.util.List;
 @Builder
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class Order {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
-
-
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
