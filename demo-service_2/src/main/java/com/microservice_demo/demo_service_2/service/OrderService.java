@@ -169,8 +169,7 @@ public class OrderService {
     public OrderDto updateOrderStatus(Long orderId, String newStatus) {
         log.info("Updating order {} status to: {}", orderId, newStatus);
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
                     log.error("Order not found: {}", orderId);
                     return new ResourceNotFoundException("Order not found: " + orderId);
                 });
@@ -216,8 +215,7 @@ public class OrderService {
     public OrderDto cancelOrder(Long orderId) {
         log.info("Cancelling order ID: {}", orderId);
 
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
                     log.error("Order not found: {}", orderId);
                     return new ResourceNotFoundException("Order not found: " + orderId);
                 });
