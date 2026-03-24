@@ -4,12 +4,15 @@ import com.microservice_demo.demo_service_2.dto.*;
 import com.microservice_demo.demo_service_2.entity.Users;
 import com.microservice_demo.demo_service_2.service.DemoEntity2Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/en2")
 @RequiredArgsConstructor
+@Slf4j
+@CrossOrigin(origins = "*")
 public class DemoEntity2Controller {
 
     private final DemoEntity2Service service;

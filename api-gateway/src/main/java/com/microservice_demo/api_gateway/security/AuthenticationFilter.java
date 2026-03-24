@@ -22,7 +22,6 @@ public class AuthenticationFilter implements GatewayFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
@@ -40,8 +39,10 @@ public class AuthenticationFilter implements GatewayFilter {
                 return onError(exchange , "Invalid authorization header format" , HttpStatus.UNAUTHORIZED);
             }
 
+            String token = authHeader.substring(7);
+
             try{
-                if (!jwtUtil.isTokenValid(authHeader)){
+                if (!jwtUtil.isTokenValid(token)){
                     return onError(exchange , "Invalid or expired token" , HttpStatus.UNAUTHORIZED);
                 }
 

@@ -232,7 +232,7 @@ public class AuthService {
 
     @CircuitBreaker(name = "microserviceSync" , fallbackMethod = "syncUserFallback")
     @Retry(name = "microserviceSync")
-    private void syncUserToMicroservices(Users user){
+    public void syncUserToMicroservices(Users user){
         log.info("🔄 Starting user sync to microservices for: {}", user.getUsername());
         try{
             UserSyncDto syncDto = UserSyncDto.builder()

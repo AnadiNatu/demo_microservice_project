@@ -27,8 +27,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/en2/sync").permitAll()
-                        .requestMatchers("api/en2/user/{id}").permitAll()
+                        .requestMatchers("/api/en2/user/{id}").permitAll()
                         .requestMatchers("/api/en2/test/public").permitAll()
+                        .requestMatchers("/api/orders/product/*/count").permitAll()
+                        .requestMatchers("/api/orders/user/*/exists").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

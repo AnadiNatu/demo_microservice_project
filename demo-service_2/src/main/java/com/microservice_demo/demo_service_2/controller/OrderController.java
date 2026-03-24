@@ -26,100 +26,184 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    // USER + ADMIN endpoints
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto) {
-        log.info("REST: Creating new order for user ID: {}", dto.getUserId());
-        OrderDto created = orderService.createOrder(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        log.info("[USER|ADMIN] Create order — userId={} products={}",
+                dto.getUserId(), dto.getProductIds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(dto));
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<OrderDto> getOrder(@PathVariable Long orderId) {
-        log.info("REST: Fetching order with ID: {}", orderId);
-        OrderDto order = orderService.getOrder(orderId);
-        return ResponseEntity.ok(order);
+        log.info("Get order — id={}", orderId);
+        return ResponseEntity.ok(orderService.getOrder(orderId));
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByUserId(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("REST: Fetching orders for user {} - Page: {}, Size: {}", userId, page, size);
-        Page<OrderDto> orders = orderService.getOrdersByUserId(userId, page, size);
-        return ResponseEntity.ok(orders);
-    }
-
-    @GetMapping("/status/{status}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
-            @PathVariable String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("REST: Fetching orders with status: {} - Page: {}, Size: {}", status, page, size);
-        Page<OrderDto> orders = orderService.getOrdersByStatus(status, page, size);
-        return ResponseEntity.ok(orders);
-    }
-
-    @PutMapping("/{orderId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OrderDto> updateOrderStatus(
-            @PathVariable Long orderId,
-            @RequestParam String status) {
-        log.info("REST: Updating order {} status to {}", orderId, status);
-        OrderDto updated = orderService.updateOrderStatus(orderId, status);
-        return ResponseEntity.ok(updated);
-    }
-
-    @PutMapping("/{orderId}/cancel")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
-        log.info("REST: Cancelling order {}", orderId);
-        OrderDto cancelled = orderService.cancelOrder(orderId);
-        return ResponseEntity.ok(cancelled);
+            @PathVariable                      Long userId,
+            @RequestParam(defaultValue = "0")  int  page,
+            @RequestParam(defaultValue = "10") int  size) {
+        log.info("Get orders by userId — userId={} page={} size={}", userId, page, size);
+        return ResponseEntity.ok(orderService.getOrdersByUserId(userId, page, size));
     }
 
     @GetMapping("/user/{userId}/date-range")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByDateRange(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.info("REST: Fetching orders for user {} between {} and {}", userId, startDate, endDate);
-        Page<OrderDto> orders = orderService.getOrdersByDateRange(userId, startDate, endDate, page, size);
-        return ResponseEntity.ok(orders);
+        log.info("Get orders by date range — userId={} start={} end={}", userId, startDate, endDate);
+        return ResponseEntity.ok(
+                orderService.getOrdersByDateRange(userId, startDate, endDate, page, size));
     }
 
-    @GetMapping("/product/{productId}/count")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Long> getProductOrderCount(@PathVariable Long productId) {
-        log.info("REST: Counting orders for product ID: {}", productId);
-        Long count = orderService.getProductOrderCount(productId);
-        return ResponseEntity.ok(count);
+    @PutMapping("/{orderId}/cancel")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
+        log.info("Cancel order — id={}", orderId);
+        return ResponseEntity.ok(orderService.cancelOrder(orderId));
     }
 
-    @GetMapping("/user/{userId}/exists")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Boolean> userHasOrders(@PathVariable Long userId) {
-        log.info("REST: Checking if user {} has orders", userId);
-        Page<OrderDto> orders = orderService.getOrdersByUserId(userId, 0, 1);
-        boolean hasOrders = orders.getTotalElements() > 0;
-        return ResponseEntity.ok(hasOrders);
+//    ADMIN - only endpoint
+@GetMapping("/status/{status}")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
+        @PathVariable                      String status,
+        @RequestParam(defaultValue = "0")  int    page,
+        @RequestParam(defaultValue = "10") int    size) {
+    log.info("[ADMIN] Get orders by status — status={} page={} size={}", status, page, size);
+    return ResponseEntity.ok(orderService.getOrdersByStatus(status, page, size));
+}
+
+    @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<OrderDto> updateOrderStatus(
+            @PathVariable Long   orderId,
+            @RequestParam String status) {
+        log.info("[ADMIN] Update order status — id={} status={}", orderId, status);
+        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> getOrderStatistics() {
-        log.info("REST: Fetching order statistics");
+        log.info("[ADMIN] Get order statistics");
+        return ResponseEntity.ok(orderService.getOrderStatistics());
+    }
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("message", "Order statistics endpoint - implement as needed");
+// Inter-service endpoints — PUBLIC (called by demo-service1 Feign, no JWT)
+// SecurityConfig has these paths in permitAll() — no @PreAuthorize needed.
 
-        return ResponseEntity.ok(stats);
+    @GetMapping("/product/{productId}/count")
+    public ResponseEntity<Long> getProductOrderCount(@PathVariable Long productId) {
+        log.info("[Feign] Product order count — productId={}", productId);
+        return ResponseEntity.ok(orderService.getProductOrderCount(productId));
+    }
+
+    @GetMapping("/user/{userId}/exists")
+    public ResponseEntity<Boolean> userHasOrders(@PathVariable Long userId) {
+        log.info("[Feign] User has orders check — userId={}", userId);
+        return ResponseEntity.ok(orderService.userHasOrders(userId));
     }
 }
+
+//
+//    @GetMapping("/{orderId}")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<OrderDto> getOrder(@PathVariable Long orderId) {
+//        log.info("REST: Fetching order with ID: {}", orderId);
+//        OrderDto order = orderService.getOrder(orderId);
+//        return ResponseEntity.ok(order);
+//    }
+//
+//    @GetMapping("/user/{userId}")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<Page<OrderDto>> getOrdersByUserId(
+//            @PathVariable Long userId,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size) {
+//        log.info("REST: Fetching orders for user {} - Page: {}, Size: {}", userId, page, size);
+//        Page<OrderDto> orders = orderService.getOrdersByUserId(userId, page, size);
+//        return ResponseEntity.ok(orders);
+//    }
+//
+//    @GetMapping("/status/{status}")
+//    @PreAuthorize("hasRole('ADMIN')")
+//    public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
+//            @PathVariable String status,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size) {
+//        log.info("REST: Fetching orders with status: {} - Page: {}, Size: {}", status, page, size);
+//        Page<OrderDto> orders = orderService.getOrdersByStatus(status, page, size);
+//        return ResponseEntity.ok(orders);
+//    }
+//
+//    @PutMapping("/{orderId}/status")
+//    @PreAuthorize("hasRole('ADMIN')")
+//    public ResponseEntity<OrderDto> updateOrderStatus(
+//            @PathVariable Long orderId,
+//            @RequestParam String status) {
+//        log.info("REST: Updating order {} status to {}", orderId, status);
+//        OrderDto updated = orderService.updateOrderStatus(orderId, status);
+//        return ResponseEntity.ok(updated);
+//    }
+//
+//    @PutMapping("/{orderId}/cancel")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
+//        log.info("REST: Cancelling order {}", orderId);
+//        OrderDto cancelled = orderService.cancelOrder(orderId);
+//        return ResponseEntity.ok(cancelled);
+//    }
+//
+//    @GetMapping("/user/{userId}/date-range")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<Page<OrderDto>> getOrdersByDateRange(
+//            @PathVariable Long userId,
+//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+//            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size) {
+//        log.info("REST: Fetching orders for user {} between {} and {}", userId, startDate, endDate);
+//        Page<OrderDto> orders = orderService.getOrdersByDateRange(userId, startDate, endDate, page, size);
+//        return ResponseEntity.ok(orders);
+//    }
+//
+//    @GetMapping("/product/{productId}/count")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<Long> getProductOrderCount(@PathVariable Long productId) {
+//        log.info("REST: Counting orders for product ID: {}", productId);
+//        Long count = orderService.getProductOrderCount(productId);
+//        return ResponseEntity.ok(count);
+//    }
+//
+//    @GetMapping("/user/{userId}/exists")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<Boolean> userHasOrders(@PathVariable Long userId) {
+//        log.info("REST: Checking if user {} has orders", userId);
+//        Page<OrderDto> orders = orderService.getOrdersByUserId(userId, 0, 1);
+//        boolean hasOrders = orders.getTotalElements() > 0;
+//        return ResponseEntity.ok(hasOrders);
+//    }
+//
+//    @GetMapping("/stats")
+//    @PreAuthorize("hasRole('ADMIN')")
+//    public ResponseEntity<Map<String, Object>> getOrderStatistics() {
+//        log.info("REST: Fetching order statistics");
+//
+//        Map<String, Object> stats = new HashMap<>();
+//        stats.put("message", "Order statistics endpoint - implement as needed");
+//
+//        return ResponseEntity.ok(stats);
+//    }
+
+
