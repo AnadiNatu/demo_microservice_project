@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DemoEntity1Repository extends JpaRepository<DemoEntity1 , Long> {
-    @Query("SELECT de FROM DemoEntity1 de JOIN de.user u WHERE u.id = :userId")
+    @Query("SELECT de FROM DemoEntity1 de JOIN de.user u WHERE u.userId = :userId")
     DemoEntity1 findByUserUserId(@Param("userId") Long userId);
 }

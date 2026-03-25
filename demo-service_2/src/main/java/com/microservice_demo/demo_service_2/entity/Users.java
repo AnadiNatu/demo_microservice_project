@@ -49,5 +49,6 @@ public class Users {
     }
 
     public void setDe1ConnectionFlag(boolean b) {
+        this.de1ConnectionFlag = b;
     }
 }

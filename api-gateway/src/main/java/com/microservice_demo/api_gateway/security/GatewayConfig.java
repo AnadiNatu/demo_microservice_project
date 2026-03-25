@@ -23,9 +23,9 @@ public class GatewayConfig {
 //                .route("demo-service1-products" , r -> r.path("/api/products/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
 //                .route("demo-service2-orders" , r -> r.path("/api/orders/**").filters(f -> f.filter(filter)).uri("lb://demo-service2"))
 //                .route("demo-service2" , r -> r.path("/api/en2/test/**").filters(f -> f.filter(filter)).uri("lb://demo-service2"))
-                .route("auth-service-all" , r -> r.path("/api/auth/**").uri("ld://auth-service"))
+                .route("auth-service-all" , r -> r.path("/api/auth/**").uri("lb://auth-service"))
 
-                .route("ds-1-users-sync" , r -> r.path("/api/auth/**").uri("lb://auth-service"))
+//                .route("ds-1-users-sync" , r -> r.path("/api/auth/**").uri("lb://auth-service"))
                 .route("ds-en1-test-public" , r -> r.path("/api/en1/test/public").uri("lb://demo-service1"))
                 .route("ds1-users-protected" , r -> r.path("/api/users/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
                 .route("ds1-products-protected" , r -> r.path("/api/products/**").filters( f -> f.filter(filter)).uri("lb://demo-service1"))
