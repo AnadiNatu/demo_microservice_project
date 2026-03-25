@@ -39,15 +39,15 @@ public class AuthenticationFilter implements GatewayFilter {
                 return onError(exchange , "Invalid authorization header format" , HttpStatus.UNAUTHORIZED);
             }
 
-            String token = authHeader.substring(7);
+            String token = authHeader;
 
             try{
                 if (!jwtUtil.isTokenValid(token)){
                     return onError(exchange , "Invalid or expired token" , HttpStatus.UNAUTHORIZED);
                 }
 
-                String username = jwtUtil.getUsername(authHeader);
-                List<String> roles = jwtUtil.getRoles(authHeader);
+                String username = jwtUtil.getUsername(token);
+                List<String> roles = jwtUtil.getRoles(token);
 
                 ServerHttpRequest modifiedRequest = exchange.getRequest()
                         .mutate()

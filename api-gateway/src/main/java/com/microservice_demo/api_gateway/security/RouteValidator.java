@@ -15,9 +15,9 @@ public class RouteValidator {
     public static final List<String> openApiEndpoints = List.of(
             "/api/auth/register",
             "/api/auth/login",
-            "/api/auth/refresh",
-            "/api/auth/health",
-            "/api/auth/validate",
+//            "/api/auth/refresh",
+//            "/api/auth/health",
+//            "/api/auth/validate",
             "/api/*/sync" , // auth-service Feign :- POST /api/users/sync , /api/en2/sync
             "/api/en2/user/**" , // public user lookup in demo-service2
             "/api/*/test/public", // smoke-test : /api/en1/test/public , /api/en2/test/public
