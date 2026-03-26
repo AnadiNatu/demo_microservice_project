@@ -1,6 +1,6 @@
 package com.microservice_demo.demo_service_2.service;
 
-import com.microservice_demo.demo_service_2.aop.StopWatch;
+import com.microservice_demo.demo_service_2.aop.Stopwatch;
 import com.microservice_demo.demo_service_2.dto.functionality.CreatedOrderDto;
 import com.microservice_demo.demo_service_2.dto.functionality.OrderDto;
 import com.microservice_demo.demo_service_2.dto.functionality.ProductInfoDto;
@@ -40,7 +40,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final DemoService1FeignClient demoService1Client;
 
-    @StopWatch
+    @Stopwatch
     @Transactional
 //    @CacheEvict(value = "orders" , allEntries = true)
     @Caching(evict = {
@@ -145,7 +145,7 @@ public class OrderService {
         throw new RuntimeException("Order service is currently unavailable . Please try again later.");
     }
 
-    @StopWatch
+    @Stopwatch
     @Cacheable(value = "orders" , key = "#orderId")
     @CircuitBreaker(name = "demoService1" , fallbackMethod = "getOrderFallback")
     public OrderDto getOrder(Long orderId){
@@ -176,7 +176,7 @@ public class OrderService {
         return toDto(order, null); // Return without product details
     }
 
-    @StopWatch
+    @Stopwatch
     @Cacheable(value = "userOrders", key = "#userId + '_' + #page + '_' + #size")
     public Page<OrderDto> getOrdersByUserId(Long userId, int page, int size) {
         log.info("Fetching orders for user ID: {} - Page: {}, Size: {}", userId, page, size);
@@ -188,7 +188,7 @@ public class OrderService {
         return orderPage.map(order -> toDto(order, null));
     }
 
-    @StopWatch
+    @Stopwatch
     @Cacheable(value = "statusOrders", key = "#status + '_' + #page + '_' + #size")
     public Page<OrderDto> getOrdersByStatus(String status, int page, int size) {
         log.info("Fetching orders with status: {} - Page: {}, Size: {}", status, page, size);
@@ -202,7 +202,7 @@ public class OrderService {
     }
 
 //    @CacheEvict(value = {"orders", "userOrders", "statusOrders"}, allEntries = true)
-    @StopWatch
+    @Stopwatch
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "orders" , key = "#orderId"),
@@ -239,7 +239,7 @@ public class OrderService {
         return toDto(orderRepository.save(order) , null);
     }
 
-    @StopWatch
+    @Stopwatch
     public Long getProductOrderCount(Long productId) {
         log.info("[Feign] Counting orders containing product ID: {}", productId);
 
@@ -252,7 +252,7 @@ public class OrderService {
         return count;
     }
 
-    @StopWatch
+    @Stopwatch
     public Page<OrderDto> getOrdersByDateRange(Long userId, LocalDateTime startDate,
                                                LocalDateTime endDate, int page, int size) {
         log.info("Fetching orders for user {} between {} and {}", userId, startDate, endDate);
@@ -264,7 +264,7 @@ public class OrderService {
         return orderPage.map(order -> toDto(order, null));
     }
 
-    @StopWatch
+    @Stopwatch
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "orders" , key = "#orderId"),
@@ -293,14 +293,14 @@ public class OrderService {
     }
 
 // User with orders
-@StopWatch
+@Stopwatch
 public Boolean userHasOrders(Long userId) {
     log.info("[Feign] Check user has orders — userId={}", userId);
     return orderRepository.countByUserId(userId) > 0;
 }
 
     //    Order Statics
-    @StopWatch
+    @Stopwatch
     public Map<String, Object> getOrderStatistics() {
         log.info("[ADMIN] Computing order statistics");
         List<Order> all = orderRepository.findAll();

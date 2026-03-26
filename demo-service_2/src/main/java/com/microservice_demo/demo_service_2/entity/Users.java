@@ -43,6 +43,7 @@ public class Users {
         updatedOn = LocalDateTime.now();
     }
 
+
     @PreUpdate
     protected void onUpdate() {
         updatedOn = LocalDateTime.now();
