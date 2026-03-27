@@ -76,8 +76,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return uri.contains("/api/en2/sync") ||
                 uri.contains("/api/en2/user/") ||
                 uri.contains("/api/en2/test/public") ||
-                uri.endsWith("/count") ||
-                uri.endsWith("/exists");
+                (uri.startsWith("/api/orders/product/") && uri.endsWith("/count") )||
+                (uri.startsWith("/api/orders/user/") && uri.endsWith("/exists"));
     }
 
     private List<SimpleGrantedAuthority> parseRoles(String rolesHeader) {

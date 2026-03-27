@@ -50,8 +50,9 @@ public class CacheConfig {
 //                .recordStats();
 //    }
 
-    @Bean(name = "redisObjectMapper")
-    public ObjectMapper redisObjectMapper(){
+//    @Bean(name = "redisObjectMapper")
+
+    private ObjectMapper redisObjectMapper(){
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
 
@@ -74,6 +75,7 @@ public class CacheConfig {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(jsonSerializer);
+        template.setHashValueSerializer(jsonSerializer);
         template.afterPropertiesSet();
 
         log.info("[DS1 Cache] RedisTemplate configured");
@@ -82,7 +84,10 @@ public class CacheConfig {
 
     @Primary
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory factory , ObjectMapper mapper){
+    public CacheManager cacheManager(RedisConnectionFactory factory){
+
+        ObjectMapper mapper = redisObjectMapper();
+
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
 
         RedisCacheConfiguration base = RedisCacheConfiguration.defaultCacheConfig()

@@ -18,8 +18,14 @@ public class RouteValidator {
 //            "/api/auth/refresh",
 //            "/api/auth/health",
 //            "/api/auth/validate",
+            "/api/users/sync",
+            "/api/en2/sync",
             "/api/*/sync" , // auth-service Feign :- POST /api/users/sync , /api/en2/sync
             "/api/en2/user/**" , // public user lookup in demo-service2
+
+            "/api/en1/test/public",
+            "/api/en2/test/public",
+
             "/api/*/test/public", // smoke-test : /api/en1/test/public , /api/en2/test/public
             "/api/orders/product/*/count" , // demo-service1 Feign : GET order count for a product
             "/api/orders/user/*/exists",

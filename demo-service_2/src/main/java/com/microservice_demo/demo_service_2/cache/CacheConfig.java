@@ -54,8 +54,8 @@ public class CacheConfig {
 //                .recordStats();
 //    }
 
-    @Bean(name = "redisObjectMapper")
-    public ObjectMapper redisObjectMapper() {
+//    @Bean(name = "redisObjectMapper")
+    private ObjectMapper redisObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.activateDefaultTyping(
@@ -87,7 +87,8 @@ public class CacheConfig {
 
     @Primary
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory factory, ObjectMapper redisObjectMapper) {
+    public CacheManager cacheManager(RedisConnectionFactory factory) {
+        ObjectMapper redisObjectMapper = redisObjectMapper();
 
         GenericJackson2JsonRedisSerializer jsonSerializer =
                 new GenericJackson2JsonRedisSerializer(redisObjectMapper);

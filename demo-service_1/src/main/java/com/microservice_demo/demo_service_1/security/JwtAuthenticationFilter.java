@@ -31,10 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         // Skip authentication for sync endpoint
-        if (request.getRequestURI().contains("/api/users/sync") || uri.endsWith("/api/en1/test/public")) {
+//        if (request.getRequestURI().contains("/api/users/sync") || uri.endsWith("/api/en1/test/public")) {
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
+
+        // Skip authentication for all public / internal-Feign endpoints
+        if (isPublicUri(uri)) {
             filterChain.doFilter(request, response);
             return;
         }
+
 
         String gatewayUsername = request.getHeader("X-User-Username");
         String gatewayRoles = request.getHeader("X-User-Roles");
@@ -141,4 +148,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 //        }
 //        filterChain.doFilter(request, response);
 //    }
+
+    private boolean isPublicUri(String uri) {
+        return uri.equals("/api/users/sync")
+                || uri.equals("/api/en1/test/public");
+    }
+
 }

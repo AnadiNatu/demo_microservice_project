@@ -18,13 +18,13 @@ public class DemoEntity2Controller {
     private final DemoEntity2Service service;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity2Dto create(@RequestBody CreateDemoEntity2Dto dto) {
         return service.create(dto);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity2Dto get(@PathVariable Long id) {
         return service.get(id);
     }
@@ -48,16 +48,17 @@ public class DemoEntity2Controller {
         dto.setEmail(syncDto.getEmail());
         dto.setPhone("");
 
-        String role = syncDto.getRoles().isEmpty() ? "USER" : syncDto.getRoles().iterator().next();
+        String role = (syncDto.getRoles().isEmpty() || syncDto.getRoles() == null)? "USER" : syncDto.getRoles().iterator().next();
 
-        dto.setUserRole(role);
+        dto.setUserRole(role.replace("ROLE_" , "").toUpperCase());
         service.createUser(dto);
 
+        log.info("[DS2] User synced successfully: {}" , syncDto.getEmail());
         return "User synced successfully";
     }
 
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
+//    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
     public Users getUsers(@PathVariable Long id){
         return service.getUser(id);
     }

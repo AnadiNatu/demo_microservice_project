@@ -23,32 +23,32 @@ public class DemoEntity1Controller {
     private final DemoEntity1ServiceInterface service;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity1Dto create(@RequestBody CreateDemoEntity1Dto dto) {
         return service.create(dto);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity1Dto get(@PathVariable Long id) {
         return service.getEntity(id);
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity1Dto getByUser(@PathVariable Long userId) {
         return service.getDemoEntity1ByUserId(userId);
     }
 
     // For Feign client calls (internal service-to-service communication)
     @GetMapping("/entity/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public DemoEntity1Dto getEntityForFeign(@PathVariable Long id) {
         return service.getDemoEntity1(id);
     }
 
     @PostMapping("/users/list")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public List<UserDto> getUsersByIdList(@RequestBody List<Long> userIds) {
         return service.getUsersByIds(userIds);
     }
