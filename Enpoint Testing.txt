@@ -432,7 +432,156 @@ Hibernate:
 
 
 
+Auth-Service
 
+Validate Token (AuthController)
+Endpoint :- {{gateway}}/api/auth/validate
+
+Error Response coming on Postman 
+{
+    "timestamp": "2026-03-27T20:47:08.3012094",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Cannot find cache named 'token' for Builder[public com.microservice_demo.auth_service.dto.ValidateTokenResponse com.microservice_demo.auth_service.service.AuthService.validateToken(com.microservice_demo.auth_service.dto.ValidateTokenRequest)] caches=[token] | key='#request.token' | keyGenerator='' | cacheManager='' | cacheResolver='' | condition='' | unless='' | sync='false'"
+}
+
+
+Refresh Token (AuthController)
+Endpoint :- {{gateway}}/api/auth/refresh
+
+ErrorReponse coming on Postman
+{
+    "timestamp": "2026-03-27T20:56:20.0667654",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Invalid refresh token"
+}
+
+ErrorResponse coming AuthController 
+2026-03-27 20:56:20 [http-nio-8086-exec-4] INFO  c.m.auth_service.service.AuthService - 🔄 Token refresh request received
+2026-03-27 20:56:20 [http-nio-8086-exec-4] DEBUG o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Using @ExceptionHandler com.microservice_demo.auth_service.exception.GlobalExceptionHandler#handleRuntimeException(RuntimeException)
+2026-03-27 20:56:20 [http-nio-8086-exec-4] ERROR c.m.a.e.GlobalExceptionHandler - ❌ RuntimeException: Invalid refresh token - StackTrace: com.microservice_demo.auth_service.service.AuthService.refreshToken(AuthService.java:182)
+2026-03-27 20:56:20 [http-nio-8086-exec-4] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-27 20:56:20 [http-nio-8086-exec-4] DEBUG o.s.w.s.m.m.a.HttpEntityMethodProcessor - Writing [ErrorResponse(timestamp=2026-03-27T20:56:20.066765400, status=400, error=Bad Request, message=Invali (truncated)...]
+2026-03-27 20:56:20 [http-nio-8086-exec-4] DEBUG o.s.w.s.m.m.a.ExceptionHandlerExceptionResolver - Resolved [java.lang.RuntimeException: Invalid refresh token]
+2026-03-27 20:56:20 [http-nio-8086-exec-4] DEBUG o.s.web.servlet.DispatcherServlet - Completed 400 BAD_REQUEST
+
+
+Demo-Service1 
+
+Endpoint :- {{gateway}}/api/users/{{userId}}
+
+Error coming Postman 
+404 - Not Found User not found: 1
+
+
+Error coming Demo-Service1 terminal
+2026-03-27 21:00:28 - GET "/api/users/1", parameters={}
+2026-03-27 21:00:28 - Mapped to com.microservice_demo.demo_service_1.controller.UserController#get(Long)
+2026-03-27 21:00:28 - 
+    select
+        u1_0.user_id,
+        u1_0.account_non_expired,
+        u1_0.account_non_locked,
+        u1_0.created_on,
+        u1_0.credentials_non_expired,
+        u1_0.de1connection_flag,
+        u1_0.de2connection_flag,
+        u1_0.email,
+        u1_0.enabled,
+        u1_0.name,
+        u1_0.phone,
+        r1_0.user_id,
+        r1_0.role,
+        u1_0.updated_on 
+    from
+        users u1_0 
+    left join
+        user_roles r1_0 
+            on u1_0.user_id=r1_0.user_id 
+    where
+        u1_0.user_id=?
+Hibernate: 
+    select
+        u1_0.user_id,
+        u1_0.account_non_expired,
+        u1_0.account_non_locked,
+        u1_0.created_on,
+        u1_0.credentials_non_expired,
+        u1_0.de1connection_flag,
+        u1_0.de2connection_flag,
+        u1_0.email,
+        u1_0.enabled,
+        u1_0.name,
+        u1_0.phone,
+        r1_0.user_id,
+        r1_0.role,
+        u1_0.updated_on 
+    from
+        users u1_0 
+    left join
+        user_roles r1_0 
+            on u1_0.user_id=r1_0.user_id 
+    where
+        u1_0.user_id=?
+2026-03-27 21:00:28 - Using @ExceptionHandler com.microservice_demo.demo_service_1.exception.GlobalExceptionHandler#notFound(ResourceNotFoundException)
+2026-03-27 21:00:28 - Using 'text/plain', given [*/*] and supported [text/plain, */*, application/json, application/*+json]
+2026-03-27 21:00:28 - Writing ["User not found: 1"]
+2026-03-27 21:00:28 - Resolved [com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException: User not found: 1]
+2026-03-27 21:00:28 - Completed 404 NOT_FOUND
+
+
+Hey chat in most but not all of the endpoints related to the demo-service1 whenever being hit there is an error of "404 Not Found" error . Postman response "User not found" and the on the terminal these type of error can be seen . Can you look into the code for the demo service 1 so that the endpoints for these service start working the same way for the demo-service2
+
+Error :- 
+2026-03-27 21:00:28 - GET "/api/users/1", parameters={}
+2026-03-27 21:00:28 - Mapped to com.microservice_demo.demo_service_1.controller.UserController#get(Long)
+2026-03-27 21:00:28 - 
+    select
+        u1_0.user_id,
+        u1_0.account_non_expired,
+        u1_0.account_non_locked,
+        u1_0.created_on,
+        u1_0.credentials_non_expired,
+        u1_0.de1connection_flag,
+        u1_0.de2connection_flag,
+        u1_0.email,
+        u1_0.enabled,
+        u1_0.name,
+        u1_0.phone,
+        r1_0.user_id,
+        r1_0.role,
+        u1_0.updated_on 
+    from
+        users u1_0 
+    left join
+        user_roles r1_0 
+            on u1_0.user_id=r1_0.user_id 
+    where
+        u1_0.user_id=?
+Hibernate: 
+    select
+        u1_0.user_id,
+        u1_0.account_non_expired,
+        u1_0.account_non_locked,
+        u1_0.created_on,
+        u1_0.credentials_non_expired,
+        u1_0.de1connection_flag,
+        u1_0.de2connection_flag,
+        u1_0.email,
+        u1_0.enabled,
+        u1_0.name,
+        u1_0.phone,
+        r1_0.user_id,
+        r1_0.role,
+        u1_0.updated_on 
+    from
+        users u1_0 
+    left join
+        user_roles r1_0 
+            on u1_0.user_id=r1_0.user_id 
+    where
+        u1_0.user_id=?
 
 
 

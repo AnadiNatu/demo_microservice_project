@@ -4,7 +4,9 @@ import com.microservice_demo.demo_service_1.dto.UserSyncDto;
 import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,55 +14,67 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Slf4j
+@CrossOrigin("*")
 public class UserController {
 
-    @Autowired
-    private UserService service;
+    private final UserService service;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Users create(@RequestBody CreateUserDto dto) {
-        return service.createUser(dto);
+    public ResponseEntity<Users> create(@RequestBody CreateUserDto dto) {
+        log.info("[UserController] Creating user: {}", dto.getEmail());
+        Users created = service.createUser(dto);
+        log.info("[UserController] ✅ User created successfully: {}", created.getEmail());
+        return ResponseEntity.ok(created);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public Users get(@PathVariable Long id) {
-        return service.getUser(id);
+    public ResponseEntity<Users> get(@PathVariable Long id) {
+        log.info("[UserController] Fetching user with ID: {}", id);
+        Users user = service.getUser(id);
+        log.info("[UserController] ✅ User found: {}", user.getEmail());
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/sync")
-    public String syncUser(@RequestBody UserSyncDto syncDto) {
-        System.out.println("📥 Received user sync request for: " + syncDto.getEmail());
+    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto) {
+        log.info("[UserController] 📥 Received user sync request for: {}", syncDto.getEmail());
 
         CreateUserDto dto = new CreateUserDto();
         dto.setName(syncDto.getUsername());
         dto.setEmail(syncDto.getEmail());
-        dto.setPhone(""); // No phone in sync data
+        dto.setPhone("");
 
         // Convert Set<String> roles to single role string
-        // Extract the first role, removing "ROLE_" prefix if present
-        String role = "USER"; // default
+        String role = "USER";
         if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
             role = syncDto.getRoles().iterator().next().replace("ROLE_", "");
         }
         dto.setUserRole(role);
 
         Users createdUser = service.createUser(dto);
-        System.out.println("✅ User synced successfully: " + createdUser.getEmail());
+        log.info("[UserController] ✅ User synced successfully: {}", createdUser.getEmail());
 
-        return "User synced successfully to Demo-Service1";
+        return ResponseEntity.ok("User synced successfully to Demo-Service1");
     }
 
     @PostMapping("/{id}/uploadLocal")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public String uploadLocal(@PathVariable Long id, @RequestParam MultipartFile file) {
-        return service.uploadPhotoToFolder(id, file);
+    public ResponseEntity<String> uploadLocal(@PathVariable Long id, @RequestParam MultipartFile file) {
+        log.info("[UserController] Uploading photo for user ID: {}", id);
+        String result = service.uploadPhotoToFolder(id, file);
+        log.info("[UserController] ✅ Photo uploaded: {}", result);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}/photoLocal")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public byte[] getLocalPhoto(@PathVariable Long id) {
-        return service.getProfilePhotoFromFolder(id);
+    public ResponseEntity<byte[]> getLocalPhoto(@PathVariable Long id) {
+        log.info("[UserController] Fetching photo for user ID: {}", id);
+        byte[] photo = service.getProfilePhotoFromFolder(id);
+        log.info("[UserController] ✅ Photo retrieved successfully");
+        return ResponseEntity.ok(photo);
     }
 }

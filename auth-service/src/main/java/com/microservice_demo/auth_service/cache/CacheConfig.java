@@ -20,7 +20,7 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager(){
 
-        log.info(" Initializiing caffeine cache manager for Auth Manager");
+        log.info(" Initializing caffeine cache manager for Auth Manager");
         CaffeineCacheManager cacheManager = new CaffeineCacheManager(
                 "users",
                 "tokens"

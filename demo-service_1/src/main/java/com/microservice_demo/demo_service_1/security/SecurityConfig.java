@@ -1,6 +1,7 @@
 package com.microservice_demo.demo_service_1.security;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -69,12 +70,16 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        log.info("[DS1 Security] 🔧 Configuring Security Filter Chain");
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -83,6 +88,7 @@ public class SecurityConfig {
                     config.setAllowedOrigins(List.of("*"));
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
+                    config.setExposedHeaders(List.of("*"));  // New line added
                     return config;
                 }))
 
@@ -90,13 +96,17 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints - NO authentication required
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/users/sync").permitAll()
                         .requestMatchers("/api/en1/test/public").permitAll()
+                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        log.info("[DS1 Security] ✅ Security Filter Chain configured successfully");
 
         return http.build();
     }
@@ -104,6 +114,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
             throws Exception {
+        log.info("[DS1 Security] 🔧 Creating AuthenticationManager bean");
         return config.getAuthenticationManager();
     }
 }

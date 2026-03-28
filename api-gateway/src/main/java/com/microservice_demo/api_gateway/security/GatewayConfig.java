@@ -32,7 +32,7 @@ public class GatewayConfig {
                 .route("ds1-users-sync" , r -> r.path("/api/users/sync").uri("lb://demo-service1"))
                 .route("ds1-en1-protected" , r -> r.path("/api/en1/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
                 .route("ds1-users-protected" , r -> r.path("/api/users/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
-                .route("ds1-products-protected" , r -> r.path("/api/users/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
+                .route("ds1-products-protected" , r -> r.path("/api/products/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
 
 //                Sync routes also should be declared first
                 .route("ds1-en2-sync" , r -> r.path("/api/en2/sync").uri("lb://demo-service2"))

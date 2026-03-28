@@ -183,7 +183,7 @@ public class AuthService {
         }
     }
 
-    @Cacheable(value = "tokens" , key = "#request.token")
+    @Cacheable(value = "token" , key = "#request.token")
     public ValidateTokenResponse validateToken(ValidateTokenRequest request) {
         log.debug("🔍 Token validation request received");
         try {

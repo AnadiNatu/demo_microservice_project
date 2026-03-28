@@ -24,105 +24,129 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
-        // ADMIN-only endpoints
-        @PostMapping
-        @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-        public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductDto dto) {
-            log.info("[ADMIN] Create product — name='{}'", dto.getProductName());
-            return ResponseEntity.status(HttpStatus.CREATED).body(productService.createProduct(dto));
-        }
 
-        @GetMapping
-        @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-        public ResponseEntity<Page<ProductDto>> getAllProducts(
-                @RequestParam(defaultValue = "0")         int    page,
-                @RequestParam(defaultValue = "10")        int    size,
-                @RequestParam(defaultValue = "createdOn") String sortBy) {
-            log.info("[ADMIN] Get all products — page={} size={} sortBy={}", page, size, sortBy);
-            return ResponseEntity.ok(productService.getAllProducts(page, size, sortBy));
-        }
+    // ========== ADMIN-ONLY ENDPOINTS ==========
 
-        @PutMapping("/{productId}/deactivate")
-        @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-        public ResponseEntity<ProductDto> deactivateProduct(@PathVariable Long productId) {
-            log.info("[ADMIN] Deactivate product — id={}", productId);
-            return ResponseEntity.ok(productService.deactivateProduct(productId));
-        }
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductDto dto) {
+        log.info("[ProductController] [ADMIN] Creating product: {}", dto.getProductName());
+        ProductDto created = productService.createProduct(dto);
+        log.info("[ProductController] ✅ Product created with ID: {}", created.getProductId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
 
-        // USER + ADMIN endpoints
-        @GetMapping("/{productId}")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<ProductDto> getProduct(@PathVariable Long productId) {
-            log.info("Get product — id={}", productId);
-            return ResponseEntity.ok(productService.getProduct(productId));
-        }
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<ProductDto>> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdOn") String sortBy) {
+        log.info("[ProductController] [ADMIN] Get all products - page={} size={} sortBy={}", page, size, sortBy);
+        Page<ProductDto> products = productService.getAllProducts(page, size, sortBy);
+        log.info("[ProductController] ✅ Found {} products", products.getTotalElements());
+        return ResponseEntity.ok(products);
+    }
 
-        @GetMapping("/active")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<Page<ProductDto>> getActiveProducts(
-                @RequestParam(defaultValue = "0")  int page,
-                @RequestParam(defaultValue = "10") int size) {
-            log.info("Get active products — page={} size={}", page, size);
-            return ResponseEntity.ok(productService.getActiveProducts(page, size));
-        }
+    @PutMapping("/{productId}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductDto> deactivateProduct(@PathVariable Long productId) {
+        log.info("[ProductController] [ADMIN] Deactivating product ID: {}", productId);
+        ProductDto deactivated = productService.deactivateProduct(productId);
+        log.info("[ProductController] ✅ Product deactivated");
+        return ResponseEntity.ok(deactivated);
+    }
 
-        @GetMapping("/category/{category}")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<Page<ProductDto>> getProductsByCategory(
-                @PathVariable String category,
-                @RequestParam(defaultValue = "0")int page,
-                @RequestParam(defaultValue = "10") int size) {
-            log.info("Get products by category — category='{}' page={} size={}", category, page, size);
-            return ResponseEntity.ok(productService.getProductsByCategory(category, page, size));
-        }
+    // ========== USER + ADMIN ENDPOINTS ==========
 
-        @GetMapping("/search")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<Page<ProductDto>> searchProducts(
-                @RequestParam String keyword,
-                @RequestParam(defaultValue = "0") int page,
-                @RequestParam(defaultValue = "10") int size) {
-            log.info("Search products — keyword='{}' page={} size={}", keyword, page, size);
-            return ResponseEntity.ok(productService.searchProducts(keyword, page, size));
-        }
+    @GetMapping("/{productId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<ProductDto> getProduct(@PathVariable Long productId) {
+        log.info("[ProductController] Get product ID: {}", productId);
+        ProductDto product = productService.getProduct(productId);
+        log.info("[ProductController] ✅ Product found: {}", product.getProductName());
+        return ResponseEntity.ok(product);
+    }
 
-        @PutMapping("/{productId}/stock")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<ProductDto> updateStock(
-                @PathVariable Long productId,
-                @RequestParam Integer quantity) {
-            log.info("Update stock — id={} qty={}", productId, quantity);
-            return ResponseEntity.ok(productService.updateStock(productId, quantity));
-        }
+    @GetMapping("/active")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Page<ProductDto>> getActiveProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("[ProductController] Get active products - page={} size={}", page, size);
+        Page<ProductDto> products = productService.getActiveProducts(page, size);
+        log.info("[ProductController] ✅ Found {} active products", products.getTotalElements());
+        return ResponseEntity.ok(products);
+    }
 
-        @PostMapping("/list")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
-            log.info("Batch fetch products — ids={}", productIds);
-            return ResponseEntity.ok(productService.getProductsByIds(productIds));
-        }
+    @GetMapping("/category/{category}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Page<ProductDto>> getProductsByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("[ProductController] Get products by category: {} - page={} size={}", category, page, size);
+        Page<ProductDto> products = productService.getProductsByCategory(category, page, size);
+        log.info("[ProductController] ✅ Found {} products in category '{}'", products.getTotalElements(), category);
+        return ResponseEntity.ok(products);
+    }
 
-        @GetMapping("/{productId}/available")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<Boolean> isProductAvailable(@PathVariable Long productId) {
-            log.info("Check availability — id={}", productId);
-            ProductDto p = productService.getProduct(productId);
-            boolean available = Boolean.TRUE.equals(p.getActive())
-                    && p.getStockQuantity() != null
-                    && p.getStockQuantity() > 0;
-            return ResponseEntity.ok(available);
-        }
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Page<ProductDto>> searchProducts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("[ProductController] Search products - keyword='{}' page={} size={}", keyword, page, size);
+        Page<ProductDto> products = productService.searchProducts(keyword, page, size);
+        log.info("[ProductController] ✅ Found {} products matching '{}'", products.getTotalElements(), keyword);
+        return ResponseEntity.ok(products);
+    }
 
-        @GetMapping("/{productId}/order-stats")
-        @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
-        public ResponseEntity<Map<String, Object>> getProductOrderStats(@PathVariable Long productId) {
-            log.info("Get order stats — productId={}", productId);
-            ProductDto product    = productService.getProduct(productId);
-            Long       orderCount = productService.getProductOrderCount(productId);
+    @PutMapping("/{productId}/stock")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<ProductDto> updateStock(
+            @PathVariable Long productId,
+            @RequestParam Integer quantity) {
+        log.info("[ProductController] Update stock - productId={} quantity={}", productId, quantity);
+        ProductDto updated = productService.updateStock(productId, quantity);
+        log.info("[ProductController] ✅ Stock updated successfully");
+        return ResponseEntity.ok(updated);
+    }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("product",     product);
-            response.put("totalOrders", orderCount);
-            return ResponseEntity.ok(response);
-        }
+    @PostMapping("/list")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
+        log.info("[ProductController] Batch fetch products - IDs: {}", productIds);
+        List<ProductDto> products = productService.getProductsByIds(productIds);
+        log.info("[ProductController] ✅ Found {} products out of {} requested", products.size(), productIds.size());
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/{productId}/available")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Boolean> isProductAvailable(@PathVariable Long productId) {
+        log.info("[ProductController] Check availability - productId={}", productId);
+        ProductDto product = productService.getProduct(productId);
+        boolean available = Boolean.TRUE.equals(product.getActive())
+                && product.getStockQuantity() != null
+                && product.getStockQuantity() > 0;
+        log.info("[ProductController] ✅ Product availability: {}", available);
+        return ResponseEntity.ok(available);
+    }
+
+    @GetMapping("/{productId}/order-stats")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> getProductOrderStats(@PathVariable Long productId) {
+        log.info("[ProductController] Get order stats - productId={}", productId);
+        ProductDto product = productService.getProduct(productId);
+        Long orderCount = productService.getProductOrderCount(productId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("product", product);
+        response.put("totalOrders", orderCount);
+
+        log.info("[ProductController] ✅ Order stats retrieved - totalOrders={}", orderCount);
+        return ResponseEntity.ok(response);
+    }
 }
