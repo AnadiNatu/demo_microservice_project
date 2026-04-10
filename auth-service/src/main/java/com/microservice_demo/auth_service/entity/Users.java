@@ -35,6 +35,21 @@ public class Users implements UserDetails {
     @Column(name = "role")
     private Set<String> roles = new HashSet<>();
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
+    @Column(name = "provider")
+    private String provider;
+
+    @Column(name = "provider_id")
+    private String providerId;
+
     private boolean enabled = true;
 
     @Column(name = "account_non_expired")

@@ -15,9 +15,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -121,6 +119,23 @@ public class JwtTokenProvider {
         }
 
         return false;
+    }
+
+    public String generateTokenFromUser(Users users){
+        Map<String , Object> claims = new HashMap<>();
+
+        claims.put("role" , users.getRoles());
+        claims.put("provider" , users.getProvider());
+        claims.put("providerId" , users.getProviderId());
+
+        return Jwts.builder()
+                .claims()
+                .add(claims)
+                .subject(users.getEmail())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis()+jwtExpiration))
+                .and()
+                .signWith(getSigningKey()).compact();
     }
 
     public long getExpirationMs(){
