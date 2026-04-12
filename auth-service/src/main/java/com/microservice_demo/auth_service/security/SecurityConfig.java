@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**" , "/actuator/**" , "/api/password/**" , "/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**" , "/actuator/**").permitAll()
+                        .requestMatchers("/api/auth/**" , "/actuator/**" , "/api/otp/**" , "/api/password/**" , "/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**" , "/actuator/**").permitAll()
                         .requestMatchers("/api/profile/**").authenticated()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2

@@ -24,9 +24,10 @@ public class GatewayConfig {
 //                .route("demo-service2-orders" , r -> r.path("/api/orders/**").filters(f -> f.filter(filter)).uri("lb://demo-service2"))
 //                .route("demo-service2" , r -> r.path("/api/en2/test/**").filters(f -> f.filter(filter)).uri("lb://demo-service2"))
                 .route("auth-register-login" ,r -> r.path("/api/auth/login" , "/api/auth/register" , "/api/auth/refresh" , "/api/auth/validate" , "/api/auth/health" , "/api/auth/test").uri("lb://auth-service"))
-                .route("auth-otp-all" ,r -> r.path("/api/password/**").uri("lb://auth-service"))
+                .route("auth-otp-all" , r -> r.path("/api/otp/**").uri("lb://auth-service"))
+                .route("auth-password-all" ,r -> r.path("/api/password/**").uri("lb://auth-service"))
                 .route("auth-phone-all" , r -> r.path("/api/auth/phone/**").uri("lb://auth-service"))
-                .route("auth-oauth2-all" , r -> r.path("/api/oauth/**" , "/oauth2/**" , "/login/oauth2/**").uri("lb://auth-service"))
+                .route("auth-oauth2-all" , r -> r.path("/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**").uri("lb://auth-service"))
 
                 .route("auth-profile-protected" , r -> r.path("/api/profile/**").filters(f -> f.filter(filter)).uri("lb://auth-service"))
 

@@ -37,48 +37,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
-        String picture = oAuth2User.getAttribute("picture");
+//        String picture = oAuth2User.getAttribute("picture");
 
         log.info("[OAUTH2] Google login | email={} | name={}" , email , name);
 
-        Users userEntity = userType2Repository.findByEmail(email).orElseGet(() -> {
-            log.info("[OAUTH2 New Google Login | email={} | name={}]",email,name);
+//        Users userEntity = userType2Repository.findByEmail(email).orElseGet(() -> {
 
-            String role = userEntity.getRoles().iterator().next().toLowerCase();
-            String[] parts = (name != null ? name : "Google User").split(" ",2);
-            String firstName = parts[0];
-            String lastName = parts.length > 1 ? parts[1] : "";
+//        log.info("[OAUTH2 New Google Login | email={} | name={}]",email,name);
 
-            Users newUser = Users.builder()
-                    .email(email)
-                    .password("")
-                    .roles()
-                    .profilePicture(picture)
-                    .build();
-
-            return userType2Repository.save(newUser);
-        });
-
-        Users domainUser = new Users();
-        domainUser.setId(userEntity.getId());
-        domainUser.setEmail(userEntity.getEmail());
-        domainUser.setFname(userEntity.getFname());
-        domainUser.setLname(userEntity.getLname());
-        domainUser.setPassword(userEntity.getPassword());
-        domainUser.setRole(UserRoles2.valueOf(userEntity.getRole()));
-        domainUser.setProfilePicture(userEntity.getProfilePicture());
-
-        String token = jwtUtil.generateToken(userEntity.getEmail());
-
-        log.info("[OAUTH2] JWT issued for Google user | email={}" , email);
-
-        String redirectUrl = FRONTEND_REDIRECT
-                + "?token=" + URLEncoder.encode(token , StandardCharsets.UTF_8)
-                + "&email=" + URLEncoder.encode(email , StandardCharsets.UTF_8)
-                + "&name=" + URLEncoder.encode(name != null ? name : "" , StandardCharsets.UTF_8);
-
-        response.sendRedirect(redirectUrl);
-
+        response.sendRedirect("/api/oauth2/success");
     }
-
 }

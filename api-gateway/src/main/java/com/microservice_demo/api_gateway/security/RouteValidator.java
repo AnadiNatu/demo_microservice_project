@@ -48,7 +48,9 @@ public class RouteValidator {
 
     public Predicate<ServerHttpRequest> isSecured = request -> {
         String path = request.getURI().getPath();
-        return openApiEndpoints.stream()
-                .noneMatch(pattern -> pathMatcher.match(pattern , path));
+        boolean isPublic = openApiEndpoints.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern , path));
+
+        return !isPublic;
     };
 }

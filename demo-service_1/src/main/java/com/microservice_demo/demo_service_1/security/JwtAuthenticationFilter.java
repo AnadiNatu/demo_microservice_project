@@ -60,25 +60,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         GatewayAuthentication authToken = new GatewayAuthentication(gatewayUsername, userId, authorities);
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
-                        log.info("[DS1 Auth] ✅ Via Gateway headers - user='{}' userId={} roles={}",
+                        log.info("[DS1 Auth] Via Gateway headers - user='{}' userId={} roles={}",
                                 gatewayUsername, userId, authorities);
                     } catch (NumberFormatException e) {
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(gatewayUsername, null, authorities);
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
-                        log.info("[DS1 Auth] ✅ Via Gateway headers (no userId) - user='{}' roles={}", gatewayUsername, authorities);
+                        log.info("[DS1 Auth] Via Gateway headers (no userId) - user='{}' roles={}", gatewayUsername, authorities);
                     }
                 } else {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(gatewayUsername, null, authorities);
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.info("[DS1 Auth] ✅ Via Gateway headers - user='{}' roles={}", gatewayUsername, authorities);
+                    log.info("[DS1 Auth] Via Gateway headers - user='{}' roles={}", gatewayUsername, authorities);
                 }
                 authenticated = true;
             } catch (Exception e) {
-                log.error("[DS1 Auth] ❌ Failed to parse gateway headers: {}", e.getMessage(), e);
+                log.error("[DS1 Auth] Failed to parse gateway headers: {}", e.getMessage(), e);
             }
         }
         // Path B: Validate a raw Bearer token (FALLBACK for direct calls)
@@ -99,20 +99,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.info("[DS1 Auth] ✅ Via Bearer token - user='{}' roles={}", username, authorities);
+                    log.info("[DS1 Auth] Via Bearer token - user='{}' roles={}", username, authorities);
                     authenticated = true;
                 } else {
-                    log.warn("[DS1 Auth] ❌ Invalid/expired Bearer token on request to '{}'", uri);
+                    log.warn("[DS1 Auth] Invalid/expired Bearer token on request to '{}'", uri);
                 }
             } catch (Exception e) {
-                log.error("[DS1 Auth] ❌ Token validation failed: {}", e.getMessage(), e);
+                log.error("[DS1 Auth] Token validation failed: {}", e.getMessage(), e);
             }
         }
 
         if (!authenticated) {
-            log.error("[DS1 Auth] ⚠️ ⚠️ ⚠️  NO VALID AUTHENTICATION for protected endpoint: {}", uri);
-            log.error("[DS1 Auth] ⚠️ This will result in 403 Forbidden or 401 Unauthorized");
-            log.error("[DS1 Auth] ⚠️ Headers - X-User-Username: '{}', X-User-Roles: '{}', Authorization: '{}'",
+            log.error("[DS1 Auth] NO VALID AUTHENTICATION for protected endpoint: {}", uri);
+            log.error("[DS1 Auth] ️ This will result in 403 Forbidden or 401 Unauthorized");
+            log.error("[DS1 Auth]Headers - X-User-Username: '{}', X-User-Roles: '{}', Authorization: '{}'",
                     gatewayUsername, gatewayRoles, authHeader != null ? "Bearer [token]" : "null");
         }
 
