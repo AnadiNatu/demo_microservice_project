@@ -26,6 +26,8 @@ public class RegisterRequest {
     @Email(message = "Email should be valid")
     private String email;
 
+    private String phoneNumber;
+
     private Set<String> roles;
 
 }

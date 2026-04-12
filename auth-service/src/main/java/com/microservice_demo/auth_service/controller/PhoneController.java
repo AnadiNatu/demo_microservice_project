@@ -27,61 +27,89 @@ public class PhoneController {
     public ResponseEntity<Map<String, Object>> sendPhoneOtp(@RequestParam String phone) {
         log.info("[PHONE_AUTH] OTP requested | phone={}", phone);
 
-        String normalizedNum = normalizePhone(phone);
-        log.info("[PHONE_AUTH] OTP sent | phone={}", phone);
+        try{
+            String normalizeNum = normalizePhone(phone);
+            smsService.sendOtpViaSms(normalizeNum);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "OTP sent to " + phone,
-                "phone", phone,
-                "note", "OTP expires in 5 minutes"
-        ));
+            return ResponseEntity.ok(Map.of(
+                    "message", "OTP sent to " + phone,
+                    "phone", phone,
+                    "note", "OTP expires in 5 minutes"
+            ));
+        }catch (Exception ex){
+            log.error("[PHONE_AUTH] Failed to send OTP | phone={} | error={}", phone, ex.getMessage());
+
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to send OTP",
+                    "message", ex.getMessage()
+            ));
+        }
     }
 
-    @PostMapping("/verify-otp")
+    @PostMapping("verify-otp")
     public ResponseEntity<Map<String, Object>> verifyPhoneOtp(@RequestParam String phone, @RequestParam String otp) {
         log.info("[PHONE_AUTH] OTP verification | phone={}", phone);
 
-        String normalizedNum = normalizePhone(phone);
-        boolean valid = smsService.validateOtp(normalizedNum, otp);
-        if (!valid) {
-            throw new ("phoneLogin", "Invalid or expired OTP");
-        }
+        try{
+            String normalizedNum = normalizePhone(phone);
+            boolean valid = smsService.validateOtp(normalizedNum , otp);
 
-        var type1User = userRepository.findAll().stream().filter(u -> normalizedNum.equals(normalizePhone(u.getPhoneNumber()))).findFirst();
+            if (!valid){
+                log.warn("[PHONE_AUTH] Invalid OTP | phone={}", phone);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid or expired OTP",
+                        "message", "Please request a new OTP"
+                ));
+            }
 
-        if (type1User.isPresent()) {
-            var entity = type1User.get();
-            Users domain = new Users();
-            domain.setId(entity.getId());
-            domain.setEmail(entity.getEmail());
-//            domain.setFname(entity.getFname());
-//            domain.setLname(entity.getLname());
-            domain.setPassword(entity.getPassword());
-            domain.setPhoneNumber(entity.getPhoneNumber());
-            domain.setRoles();
+            var userOptional = userRepository.findByPhoneNumber(normalizedNum);
+            if (userOptional.isEmpty()){
+                log.warn("[PHONE_AUTH] User not found | phone={}", phone);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "User not found",
+                        "message", "No account exists with this phone number. Please register first."
+                ));
+            }
 
-            String token = jwtUtil.generateTokenFromUser();
-            log.info("[PHONE_AUTH] TYPE1 login via phone | id={} | phone={}", entity.getId(), phone);
+            Users user = userOptional.get();
+
+            String token = jwtUtil.generateTokenFromUser(user);
+            log.info("[PHONE_AUTH] Login successful | userId={} | phone={}", user.getId(), phone);
 
             return ResponseEntity.ok(Map.of(
-                    "token", token,
-                    "userType", "TYPE1",
-                    "role", entity.getRole(),
-                    "email", entity.getEmail(),
-                    "message", "Phone login successful"
+                    "token" , token ,
+                    "username" , user.getUsername(),
+                    "email"  , user.getEmail(),
+                    "roles" , user.getRoles(),
+                    "expires" , jwtUtil.getExpirationMs(),
+                    "message" , "Phone login successful"
+            ));
+        }catch (Exception ex){
+            log.error("[PHONE_AUTH] Verification failed | phone = {} | error = {}" , phone , ex.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Verification failed",
+                    "message", ex.getMessage()
             ));
         }
-        throw new RuntimeException("User not found");
     }
 
     private String normalizePhone(String phone){
         if (phone == null) return null;
 
-        phone = phone.trim().replace("[^\\d]" , "");
+        phone = phone.trim().replaceAll("[^\\d+]" , "");
 
-        if (phone.length() > 10){
-            return phone.substring(phone.length() - 10);
+        if (phone.startsWith("+")){
+            return phone;
         }
+
+        if (phone.startsWith("91") && phone.length() > 10){
+            return "+" + phone;
+        }
+
+        if (phone.length() == 10) {
+            return "+91" + phone;
+        }
+
         return phone;
     }
 }

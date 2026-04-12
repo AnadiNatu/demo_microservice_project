@@ -1,5 +1,6 @@
 package com.microservice_demo.auth_service.feign;
 
+import com.microservice_demo.auth_service.dto.ProfilePictureSyncDto;
 import com.microservice_demo.auth_service.dto.UserSyncDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,4 +11,7 @@ public interface DemoService1FeignClient {
 
     @PostMapping("/api/users/sync")
     String syncUser(@RequestBody UserSyncDto syncDto);
+
+    @PostMapping("/api/users/sync/profile-picture")
+    String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto);
 }

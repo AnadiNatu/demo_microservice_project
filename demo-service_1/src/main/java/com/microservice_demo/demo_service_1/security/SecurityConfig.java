@@ -99,6 +99,7 @@ public class SecurityConfig {
                         // Public endpoints - NO authentication required
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/users/sync").permitAll()
+                        .requestMatchers("/api/users/sync/profile-picture").permitAll()
                         .requestMatchers("/api/en1/test/public").permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()

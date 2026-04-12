@@ -30,6 +30,18 @@ public class Users implements UserDetails {
 
     private String phone;
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
+    @Column(name = "provider")
+    private String provider;
+
+    @Column(name = "provider_id")
+    private String providerId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
@@ -40,7 +52,10 @@ public class Users implements UserDetails {
     private boolean credentialsNonExpired = true;
     private boolean enabled = true;
 
+    @Column(name = "de1_connection_flag")
     private boolean de1ConnectionFlag;
+
+    @Column(name = "de2_connection_flag")
     private boolean de2ConnectionFlag;
 
     private LocalDateTime createdOn;

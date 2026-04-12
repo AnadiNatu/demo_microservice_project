@@ -7,6 +7,7 @@ import com.microservice_demo.demo_service_1.repository.UserRepository;
 import com.microservice_demo.demo_service_1.service.interfaces.UserServiceInterface;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +20,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService implements UserServiceInterface {
 
     private final UserRepository repo;
@@ -33,7 +35,7 @@ public class UserService implements UserServiceInterface {
                 .findFirst();
 
         if (existingByEmail.isPresent()) {
-            System.out.println("⚠️ User already exists with email: " + dto.getEmail());
+            log.info("[DS1] User already exists with email: {}", dto.getEmail());
             return existingByEmail.get(); // Return existing user instead of creating duplicate
         }
 
@@ -43,7 +45,7 @@ public class UserService implements UserServiceInterface {
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
 
-        // ✅ Convert single role string → Set<String>
+        //Convert single role string → Set<String>
         Set<String> roles = new HashSet<>();
         String roleStr = dto.getUserRole();
 
@@ -60,14 +62,14 @@ public class UserService implements UserServiceInterface {
         user.setDe1ConnectionFlag(false);
         user.setDe2ConnectionFlag(false);
 
-        // 🔥 Security flags (MUST be set for Spring Security UserDetails)
+        //Security flags (MUST be set for Spring Security UserDetails)
         user.setEnabled(true);
         user.setAccountNonExpired(true);
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
 
         Users saved = repo.save(user);
-        System.out.println("✅ User created in Demo-Service1: " + saved.getEmail());
+        log.info("[DS1] User created | email={}", saved.getEmail());
 
         return saved;
     }
@@ -77,6 +79,18 @@ public class UserService implements UserServiceInterface {
         return repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
     }
+
+    public void updateProfilePicture(Long userId , String profilePictureUrl){
+        Users user = repo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
+
+        user.setProfilePicture(profilePictureUrl);
+        repo.save(user);
+
+        log.info("✅ [DS1] Profile picture updated | userId={} | url={}", userId,
+                profilePictureUrl != null ? profilePictureUrl : "removed");
+    }
+
+    
 
     @Override
     public String uploadPhotoToFolder(Long userId, MultipartFile file) {

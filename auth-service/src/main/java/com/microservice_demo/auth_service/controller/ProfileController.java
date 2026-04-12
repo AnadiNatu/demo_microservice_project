@@ -1,7 +1,9 @@
 package com.microservice_demo.auth_service.controller;
 
+import com.microservice_demo.auth_service.entity.Users;
 import com.microservice_demo.auth_service.repository.UserRepository;
 import com.microservice_demo.auth_service.security.UserDetailsServiceImpl;
+import com.microservice_demo.auth_service.service.AuthService;
 import com.microservice_demo.auth_service.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -23,7 +25,8 @@ public class ProfileController {
     private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
 
     private final CloudinaryService cloudinaryService;
-    private final UserRepository userType1Repository;
+    private final UserRepository userRepository;
+    private final AuthService authService;
 
     @PostMapping("photo")
     public ResponseEntity<Map<String, Object>> uploadProfilePhoto(
@@ -33,22 +36,19 @@ public class ProfileController {
         String email = userDetails.getUsername();
         log.info("[PROFILE] Photo upload request | email={}", email);
 
-        if (userDetails instanceof UserDetailsServiceImpl d) {
-            var entity = userType1Repository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+        Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-            String url = cloudinaryService.uploadProfilePhoto(file, "t1_" + entity.getId());
-            entity.setProfilePicture(url);
-            userType1Repository.save(entity);
+        String url = cloudinaryService.uploadProfilePhoto(file , "user_"+user.getId());
+        user.setProfilePicture(url);
+        userRepository.save(user);
 
-            log.info("[PROFILE] TYPE1 photo updated | id={} | url={}", entity.getId(), url);
-            return ResponseEntity.ok(Map.of(
-                    "message",    "Profile photo updated successfully",
-                    "photoUrl",   url,
-                    "userType",   "TYPE1"
-            ));
-        }
-        return ResponseEntity.badRequest().body(Map.of("error", "Unknown user type"));
+        authService.syncProfilePictureUpdate(user.getId(), url);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Profile photo updated successfully",
+                "photoUrl", url,
+                "synced", true
+        ));
     }
 
     @GetMapping("photo")
@@ -57,16 +57,12 @@ public class ProfileController {
 
         String email = userDetails.getUsername();
 
-        if (userDetails instanceof UserDetailsServiceImpl d) {
-            var entity = userType1Repository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            return ResponseEntity.ok(Map.of(
-                    "photoUrl", entity.getProfilePicture() != null ? entity.getProfilePicture() : "",
-                    "userType", "TYPE1"
-            ));
+       Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        }
-        return ResponseEntity.badRequest().body(Map.of("error", "Unknown user type"));
+       return ResponseEntity.ok(Map.of(
+               "photoUrl", user.getProfilePicture() != null ? user.getProfilePicture() : "",
+               "userId", user.getId()
+       ));
     }
 
     @DeleteMapping("photo")
@@ -75,19 +71,42 @@ public class ProfileController {
 
         String email = userDetails.getUsername();
 
-        if (userDetails instanceof UserDetailsServiceImpl d) {
-            var entity = userType1Repository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+        Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-            if (entity.getProfilePicture() != null) {
-                cloudinaryService.deleteImage("multiuser/profiles/user_t1_" + entity.getId());
-                entity.setProfilePicture(null);
-                userType1Repository.save(entity);
+        if (user.getProfilePicture() != null) {
+            String publicId = cloudinaryService.extractPublicId(user.getProfilePicture());
+
+            if (publicId != null) {
+                cloudinaryService.deleteImage(publicId);
             }
-            return ResponseEntity.ok(Map.of("message", "Profile photo removed"));
+            user.setProfilePicture(null);
+            userRepository.save(user);
 
+            authService.syncProfilePictureUpdate(user.getId(), null);
+
+            log.info("[PROFILE] Photo removed and synced | userId={}", user.getId());
         }
-        return ResponseEntity.badRequest().body(Map.of("error", "Unknown user type"));
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Profile photo removed",
+                "synced", true
+        ));
+    }
+
+    @GetMapping("/me")
+public ResponseEntity<Map<String , Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(Map.of(
+                "id" , user.getId() ,
+                "username" , user.getUsername() ,
+                "email" , user.getEmail() ,
+                "phoneNumber" , user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
+                "profilePicture" , user.getProfilePicture() != null ? user.getProfilePicture() : "",
+                "roles" , user.getRoles(),
+                "provider" , user.getProvider() != null ? user.getProvider() : "LOCAL"
+        ));
     }
 }
 

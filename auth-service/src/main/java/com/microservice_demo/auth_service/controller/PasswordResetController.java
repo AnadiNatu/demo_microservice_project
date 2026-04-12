@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/password/")
@@ -32,18 +33,46 @@ public class PasswordResetController {
 
         log.info("[PASSWORD_RESET] Request initiated | email={} | method={}", email, method);
 
-        var user = userRepository.existsByEmail(email);
+        Optional<Users> user = userRepository.findByEmail(email);
 
-        if (user) {
-            return handleForgot(user, email, method);
+        if (user.isEmpty()){
+            log.warn("[PASSWORD_RESET] User not found | email={}", email);
+            return ResponseEntity.ok(Map.of(
+                    "message" , "If an account exists with this email , you will receive an OTP"
+            ));
         }
 
-        log.warn("[PASSWORD_RESET] User not found | email={}", email);
+        Users savedUser = user.get();
+        if ("sms".equalsIgnoreCase(method)){
+            String phoneNumber = savedUser.getPhoneNumber();
+
+            if (phoneNumber == null || phoneNumber.isBlank()){
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "No phone registered for this account",
+                        "suggestion", "Use email method instead"
+                ));
+            }
+
+            smsService.sendOtpViaSms(phoneNumber);
+            return ResponseEntity.ok(Map.of(
+                    "message" , "OTP sent to your phone number" ,
+                    "method" , "sms" ,
+                    "phone" , maskPhone(phoneNumber),
+                    "expiresIn" , "5 minutes"
+            ));
+        }
+
+//        Default to email
+        emailService.sendOtpViaEmail(email);
 
         return ResponseEntity.ok(Map.of(
-                "message", "If an account exists with this email, you will receive an OTP"
+                "message" , "OTP sent to you email instead",
+                "method" , "email",
+                "email" , maskEmail(email),
+                "expiresIn" , "5 minutes"
         ));
     }
+
 
         private ResponseEntity<Map<String , Object>> handleForgot(Object user , String email , String method){
             String phoneNumber = extractNumber(user);
@@ -87,7 +116,7 @@ public class PasswordResetController {
         }
 
         String normalizeIdentifier = identifier;
-        if (identifier.matches("\\d+91")) {
+        if (identifier.matches("^\\+?\\d+$")) {
             normalizeIdentifier = formatToE164(identifier);
         }
 
@@ -100,32 +129,64 @@ public class PasswordResetController {
             ));
         }
 
-        var users = userRepository.findByPhoneNumber(normalizeIdentifier);
-        if (users.isPresent()) {
-            var user = users.get();
-            user.setPassword(passwordEncoder.encode(newPassword));
-            userRepository.save(user);
+        Optional<Users> userOptional = userRepository.findByEmail(normalizeIdentifier);
+        if (userOptional.isEmpty()){
+            userOptional = userRepository.findByPhoneNumber(normalizeIdentifier);
+        }
 
-            log.info("[PASSWORD_RESET] Password updated | userType=TYPE1 | email={}", identifier);
-
-            try {
-                emailService.sendSimpleEmail(
-                        user.getEmail(),
-                        "Password Changed Successfully",
-                        "Hi " + user.getUsername() + ",\n\nYour password has been successfully changed.\n\n" +
-                                "If you didn't make this change, please contact support immediately."
-                );
-            } catch (Exception ex) {
-                log.warn("[PASSWORD_RESET] Confirmation email failed | email={}", identifier);
-            }
-            return ResponseEntity.ok(Map.of(
-                    "message", "Password reset successful",
-                    "userType", "TYPE1"
+        if (userOptional.isEmpty()){
+            log.error("[PASSWORD_RESET] User not found | identifier={}", identifier);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "User not found"
             ));
         }
-        return ResponseEntity.badRequest().body(Map.of(
-                "error", "User not found"
+
+        Users user = userOptional.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        log.info("[PASSWORD_RESET] Password updated successfully | email={}", user.getEmail());
+        try{
+            emailService.sendSimpleEmail(
+                    user.getEmail(),
+                    "Password Changed Successfully",
+                    "Hi \" + user.getUsername() + \",\\n\\nYour password has been successfully changed.\\n\\n\" +\n" +
+                            "                            \"If you didn't make this change, please contact support immediately."
+            );
+        }catch (Exception e){
+            log.warn("[PASSWORD_RESET] Confirmation email failed | email={}", user.getEmail());
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message" , "Password reset successful",
+                "email" , user.getEmail()
         ));
+//        var users = userRepository.findByPhoneNumber(normalizeIdentifier);
+//        if (users.isPresent()) {
+//            var user = users.get();
+//            user.setPassword(passwordEncoder.encode(newPassword));
+//            userRepository.save(user);
+//
+//            log.info("[PASSWORD_RESET] Password updated | userType=TYPE1 | email={}", identifier);
+//
+//            try {
+//                emailService.sendSimpleEmail(
+//                        user.getEmail(),
+//                        "Password Changed Successfully",
+//                        "Hi " + user.getUsername() + ",\n\nYour password has been successfully changed.\n\n" +
+//                                "If you didn't make this change, please contact support immediately."
+//                );
+//            } catch (Exception ex) {
+//                log.warn("[PASSWORD_RESET] Confirmation email failed | email={}", identifier);
+//            }
+//            return ResponseEntity.ok(Map.of(
+//                    "message", "Password reset successful",
+//                    "userType", "TYPE1"
+//            ));
+//        }
+//        return ResponseEntity.badRequest().body(Map.of(
+//                "error", "User not found"
+//        ));
     }
 
     @PostMapping("change")
@@ -138,28 +199,27 @@ public class PasswordResetController {
             ));
         }
 
-        var type1User = userRepository.findByEmail(email);
-        if (type1User.isPresent()){
-            var user = type1User.get();
-            if (!passwordEncoder.matches(currentPassword , user.getPassword())){
-                log.warn("[PASSWORD_CHANGE] Current password mismatch | email={}", email);
-                return ResponseEntity.badRequest().body(Map.of(
-                        "error", "Current password is incorrect"
-                ));
-            }
-
-            user.setPassword(passwordEncoder.encode(newPassword));
-            userRepository.save(user);
-            log.info("[PASSWORD_CHANGE] Success | userType=TYPE1 | email={}", email);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Password changed successfully",
-                    "userType", "TYPE1"
+        Optional<Users> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error" , "User not found"
+            ));
+        }
+        Users user = userOptional.get();
+        if (!passwordEncoder.matches(currentPassword , user.getPassword())){
+            log.warn("[PASSWORD_CHANGE] Current password mismatch | email={}", email);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error" , "Current password is incorrect"
             ));
         }
 
-        return ResponseEntity.badRequest().body(Map.of(
-                "error", "User not found"
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        log.info("[PASSWORD_CHANGE] Success | email = {} " , email);
+
+        return ResponseEntity.ok(Map.of(
+                "message" , "Password changed successfully"
         ));
     }
 

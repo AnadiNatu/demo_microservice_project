@@ -1,6 +1,7 @@
 package com.microservice_demo.demo_service_1.controller;
 import com.microservice_demo.demo_service_1.dto.CreateUserDto;
 import com.microservice_demo.demo_service_1.dto.UserSyncDto;
+import com.microservice_demo.demo_service_1.dto.functionality.ProfilePictureSyncDto;
 import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,10 @@ public class UserController {
         dto.setUserRole(role);
 
         Users createdUser = service.createUser(dto);
+
+        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()){
+            service.uploadProfilePicture(createdUser.getUserId() , syncDto.getProfilePicture());
+        }
         log.info("[UserController] ✅ User synced successfully: {}", createdUser.getEmail());
 
         return ResponseEntity.ok("User synced successfully to Demo-Service1");
@@ -67,6 +72,16 @@ public class UserController {
         String result = service.uploadPhotoToFolder(id, file);
         log.info("[UserController] ✅ Photo uploaded: {}", result);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/sync/profile-picture")
+    public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
+        log.info("📥 [DS1] Received profile picture sync | userId={}", syncDto.getUserId());
+
+        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
+
+        log.info("✅ [DS1] Profile picture synced | userId={}", syncDto.getUserId());
+        return "Profile picture synced successfully";
     }
 
     @GetMapping("/{id}/photoLocal")
