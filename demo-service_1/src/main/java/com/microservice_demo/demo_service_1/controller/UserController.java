@@ -58,7 +58,7 @@ public class UserController {
         Users createdUser = service.createUser(dto);
 
         if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()){
-            service.uploadProfilePicture(createdUser.getUserId() , syncDto.getProfilePicture());
+            service.updateProfilePicture(createdUser.getUserId() , syncDto.getProfilePicture());
         }
         log.info("[UserController] ✅ User synced successfully: {}", createdUser.getEmail());
 
