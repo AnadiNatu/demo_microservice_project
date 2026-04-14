@@ -151,6 +151,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isPublicUri(String uri) {
         return uri.equals("/api/users/sync")
                 || uri.equals("/api/en1/test/public")
-                || uri.startsWith("/actuator/");
+                || uri.startsWith("/actuator/")
+                || uri.equals("/api/users/sync/profile-picture");
     }
 }

@@ -29,6 +29,8 @@ public class GatewayConfig {
                 .route("auth-phone-all" , r -> r.path("/api/auth/phone/**").uri("lb://auth-service"))
                 .route("auth-oauth2-all" , r -> r.path("/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**").uri("lb://auth-service"))
 
+                .route("ds1-users-profile-sync" , r -> r.path("/api/users/sync/profile-picture").uri("lb://demo-service1"))
+
                 .route("auth-profile-protected" , r -> r.path("/api/profile/**").filters(f -> f.filter(filter)).uri("lb://auth-service"))
 
                 .route("auth-service-all" , r -> r.path("/api/auth/**").uri("lb://auth-service"))
@@ -42,7 +44,6 @@ public class GatewayConfig {
                 .route("ds1-users-protected" , r -> r.path("/api/users/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
                 .route("ds1-products-protected" , r -> r.path("/api/products/**").filters(f -> f.filter(filter)).uri("lb://demo-service1"))
 
-                .route("ds1-users-profile-sync" , r -> r.path("/api/users/sync/profile-picture").uri("lb://demo-service1"))
 
 //                Sync routes also should be declared first
                 .route("ds1-en2-sync" , r -> r.path("/api/en2/sync").uri("lb://demo-service2"))

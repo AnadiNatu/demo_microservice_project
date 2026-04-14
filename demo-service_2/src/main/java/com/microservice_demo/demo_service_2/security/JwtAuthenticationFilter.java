@@ -114,8 +114,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicUri(String uri) {
-        return uri.contains("/api/en2/sync/") ||
-                uri.contains("/api/en2/user/") ||
+        return uri.equals("/api/en2/sync") ||
+                uri.startsWith("/api/en2/user/") ||
                 uri.contains("/api/en2/test/public/") ||
 
                 uri.equals("/api/en2/sync/profile-picture")||
@@ -128,29 +128,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private List<SimpleGrantedAuthority> parseRoles(String rolesHeader) {
-        if (rolesHeader == null || rolesHeader.trim().isEmpty()){
-            log.warn("[DS1 Auth] Empty roles header received, using default ROLE_USER");
+        if (rolesHeader == null || rolesHeader.trim().isEmpty()) {
+            log.warn("[DS2 Auth] Empty roles header, defaulting to ROLE_USER");
             return List.of(new SimpleGrantedAuthority("ROLE_USER"));
         }
-
-        List<SimpleGrantedAuthority> authorities = Arrays.stream(
-                rolesHeader
-                        .replace("[" , "")
+        return Arrays.stream(rolesHeader
+                        .replace("[", "")
                         .replace("]", "")
-                        .replace("\"" , "").trim()
+                        .replace("\"", "")
+                        .trim()
                         .split(","))
                 .map(String::trim)
                 .filter(r -> !r.isEmpty())
-                .map(role -> {
-                    if (!role.startsWith("Role")) {
-                        return "ROLE_" + role;
-                    }
-                    return role;
-                })
+                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)  // FIX: was "Role"
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
-        log.debug("[DS1 Auth] Parsed roles from '{}' to {}", rolesHeader, authorities);
-        return authorities;
+
     }
 
 }

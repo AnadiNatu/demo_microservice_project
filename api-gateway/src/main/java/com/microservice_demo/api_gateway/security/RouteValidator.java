@@ -23,6 +23,10 @@ public class RouteValidator {
             "/api/*/sync" , // auth-service Feign :- POST /api/users/sync , /api/en2/sync
             "/api/en2/user/**" , // public user lookup in demo-service2
 
+            //            Profile endpoints
+            "/api/users/sync/profile-picture",  // Demo-Service1
+            "/api/en2/sync/profile-picture",    // Demo-Service2
+
             "/api/auth/phone/**" , // Phone authentication
             "/api/otp/**" , // OTP send/verify
             "/api/password/**" , // Password reset/change
@@ -32,10 +36,6 @@ public class RouteValidator {
 
             "/api/en1/test/public",
             "/api/en2/test/public",
-
-//            Profile endpoints
-            "/api/users/sync/profile-picture",  // Demo-Service1
-            "/api/en2/sync/profile-picture",    // Demo-Service2
 
             "/api/*/test/public", // smoke-test : /api/en1/test/public , /api/en2/test/public
             "/api/orders/product/*/count" , // demo-service1 Feign : GET order count for a product
