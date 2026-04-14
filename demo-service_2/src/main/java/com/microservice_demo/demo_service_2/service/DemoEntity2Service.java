@@ -11,6 +11,7 @@ import com.microservice_demo.demo_service_2.repository.DemoEntity2Repository;
 import com.microservice_demo.demo_service_2.repository.UserRepository;
 import com.microservice_demo.demo_service_2.service.interfaces.DemoEntity2ServiceInterface;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     private final DemoEntity2Repository repo;
     private final DemoService1FeignClient feign;
@@ -114,5 +116,15 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
             dto.setDe1Id(de1.getDemoEn1Id());
         }
         return dto;
+    }
+
+    public void updateProfilePicture(Long userId , String profilePicture){
+        Users user = userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
+
+        user.setProfilePicture(profilePicture);
+        userRepo.save(user);
+
+        log.info("✅ [DS1] Profile picture updated | userId={} | url={}", userId,
+                profilePicture != null ? profilePicture : "removed");
     }
 }

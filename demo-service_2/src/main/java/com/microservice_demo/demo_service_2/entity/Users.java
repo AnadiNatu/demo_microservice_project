@@ -34,6 +34,9 @@ public class Users {
     private boolean de1ConnectionFlag;
     private boolean de2ConnectionFlag;
 
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
     private LocalDateTime createdOn;
     private LocalDateTime updatedOn;
 

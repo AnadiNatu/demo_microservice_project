@@ -37,61 +37,122 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String gatewayUser = request.getHeader("X-User-Username");
         String gatewayRoles = request.getHeader("X-User-Roles");
+        String gatewayUserId = request.getHeader("X-User-Id");
         String authHeader = request.getHeader("Authorization");
 
+        log.info("[DS2 Auth] Request to '{}' - GW Username: {}, GW Roles: {}, Auth Header: {}",
+                uri, gatewayUser, gatewayRoles, authHeader != null ? "Present" : "Missing");
+        boolean authentication = false;
 //        Path A : trust Gateway-forwarded headers
-        if (gatewayUser != null && gatewayRoles != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            List<SimpleGrantedAuthority> authorities = parseRoles(gatewayRoles);
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(gatewayUser, null, authorities);
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(auth);
+//        if (gatewayUser != null && gatewayRoles != null && SecurityContextHolder.getContext().getAuthentication() == null)
 
-            log.debug("[DS2 Auth] Via Gateway headers - user='{}' roles='{}'", gatewayUser, gatewayRoles);
-        } // Path B : validate row Bearer token
-        else if (authHeader != null && authHeader.startsWith("Bearer ") && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (gatewayUser != null && gatewayRoles != null) {
+            try {
+                List<SimpleGrantedAuthority> authorities = parseRoles(gatewayRoles);
+                if (gatewayUserId != null && !gatewayUserId.isEmpty()) {
+                    try {
+                        Long userId = Long.parseLong(gatewayUserId);
+                        GatewayAuthentication authToken = new GatewayAuthentication(gatewayUser, userId, authorities);
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        log.info("[DS2 Auth] Via Gateway headers - user='{}' userId={} roles={}",
+                                gatewayUser, userId, authorities);
+                    } catch (NumberFormatException ex) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(gatewayUser, null, authorities);
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        log.info("[DS2 Auth] Via Gateway headers (no userId) - user='{}' roles={}", gatewayUser, authorities);
 
-            String token = authHeader.substring(7);
-
-            if (jwtTokenValidator.validateToken(token)) {
-                String username = jwtTokenValidator.getUsername(token);
-                List<String> roles = jwtTokenValidator.getRoles(token);
-
-                List<SimpleGrantedAuthority> authorities = roles
-                        .stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList());
-
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                log.debug("[DS2] Auth Via Bearer token - user='{}'", username);
-            } else {
-                log.warn("[DS2 Auth] Invalid/expired Bearer token on '{}'", uri);
+                    }
+                } else {
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(gatewayUser, null, authorities);
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    log.debug("[DS2 Auth] Via Gateway headers - user='{}' roles='{}'", gatewayUser, gatewayRoles);
+                }
+                authentication = true;
+            } catch (Exception ex) {
+                log.error("[DS2 Auth] Failed to parse gateway headers: {}", ex.getMessage(), ex);
             }
+        }
+
+        // Path B : validate row Bearer token
+        else if (authHeader != null && authHeader.startsWith("Bearer ") && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String token = authHeader.substring(7);
+            try {
+                if (jwtTokenValidator.validateToken(token)) {
+                    String username = jwtTokenValidator.getUsername(token);
+                    List<String> roles = jwtTokenValidator.getRoles(token);
+
+                    List<SimpleGrantedAuthority> authorities = roles
+                            .stream()
+                            .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList());
+
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    log.info("[DS2 Auth] Via Bearer token - user='{}' roles={}", username, authorities);
+//                    log.debug("[DS2] Auth Via Bearer token - user='{}'", username);
+                    authentication = true;
+                } else {
+                    log.warn("[DS2 Auth] Invalid/expired Bearer token on '{}'", uri);
+                }
+            }catch (Exception ex){
+                log.error("[DS2 Auth] Token validation failed: {}", ex.getMessage(), ex);
+            }
+        }
+
+        if(!authentication){
+            log.error("[DS2 Auth] NO VALID AUTHENTICATION for protected endpoint: {}", uri);
+            log.error("[DS2 Auth] ️ This will result in 403 Forbidden or 401 Unauthorized");
+            log.error("[DS2 Auth]Headers - X-User-Username: '{}', X-User-Roles: '{}', Authorization: '{}'",
+                    gatewayUser, gatewayRoles, authHeader != null ? "Bearer [token]" : "null");
         }
         filterChain.doFilter(request, response);
     }
 
     private boolean isPublicUri(String uri) {
-        return uri.contains("/api/en2/sync") ||
+        return uri.contains("/api/en2/sync/") ||
                 uri.contains("/api/en2/user/") ||
-                uri.contains("/api/en2/test/public") ||
+                uri.contains("/api/en2/test/public/") ||
+
+                uri.equals("/api/en2/sync/profile-picture")||
+                uri.matches("/api/orders/product/\\d+/count") ||
+                uri.matches("/api/orders/user/\\d+/exist") ||
+                uri.startsWith("/actuator/") ||
+
                 (uri.startsWith("/api/orders/product/") && uri.endsWith("/count") )||
                 (uri.startsWith("/api/orders/user/") && uri.endsWith("/exists"));
     }
 
     private List<SimpleGrantedAuthority> parseRoles(String rolesHeader) {
-        return Arrays.stream(rolesHeader
-                        .replace("[", "")
+        if (rolesHeader == null || rolesHeader.trim().isEmpty()){
+            log.warn("[DS1 Auth] Empty roles header received, using default ROLE_USER");
+            return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
+        List<SimpleGrantedAuthority> authorities = Arrays.stream(
+                rolesHeader
+                        .replace("[" , "")
                         .replace("]", "")
-                        .replace("\"", "")
-                        .trim()
+                        .replace("\"" , "").trim()
                         .split(","))
                 .map(String::trim)
                 .filter(r -> !r.isEmpty())
+                .map(role -> {
+                    if (!role.startsWith("Role")) {
+                        return "ROLE_" + role;
+                    }
+                    return role;
+                })
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+        log.debug("[DS1 Auth] Parsed roles from '{}' to {}", rolesHeader, authorities);
+        return authorities;
     }
+
 }
 //    @Override
 //    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

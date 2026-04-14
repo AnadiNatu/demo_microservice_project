@@ -5,6 +5,7 @@ import com.microservice_demo.demo_service_2.entity.Users;
 import com.microservice_demo.demo_service_2.service.DemoEntity2Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,24 +43,45 @@ public class DemoEntity2Controller {
     }
 
     @PostMapping("/sync")
-    public String syncUser(@RequestBody UserSyncDto syncDto){
+    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto){
+        log.info("[DS2] Received user sync | email={}", syncDto.getEmail());
+
         CreateUserDto dto = new CreateUserDto();
         dto.setName(syncDto.getUsername());
         dto.setEmail(syncDto.getEmail());
-        dto.setPhone("");
+        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
 
-        String role = (syncDto.getRoles().isEmpty() || syncDto.getRoles() == null)? "USER" : syncDto.getRoles().iterator().next();
 
-        dto.setUserRole(role.replace("ROLE_" , "").toUpperCase());
-        service.createUser(dto);
+        String role = "USER";
+        if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
+            role = syncDto.getRoles().iterator().next().replace("ROLE_", "").toUpperCase();
+        }
+        dto.setUserRole(role);
 
-        log.info("[DS2] User synced successfully: {}" , syncDto.getEmail());
-        return "User synced successfully";
+        Users createdUser = service.createUser(dto);
+
+        // Sync profile picture if already set (e.g. OAuth2 provider picture)
+        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
+            service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
+        }
+
+        log.info("[DS2] User synced successfully | email={}", createdUser.getEmail());
+        return ResponseEntity.ok("User synced successfully to Demo-Service2");
     }
 
     @GetMapping("/user/{id}")
 //    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
     public Users getUsers(@PathVariable Long id){
         return service.getUser(id);
+    }
+
+    @PostMapping("/sync/profile-picture")
+    public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
+        log.info("[DS2] Received profile picture sync | userId={}", syncDto.getUserId());
+
+        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
+
+        log.info("[DS2] Profile picture synced | userId={}", syncDto.getUserId());
+        return "Profile picture synced successfully";
     }
 }

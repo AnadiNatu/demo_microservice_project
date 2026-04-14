@@ -16,5 +16,8 @@ public class UserSyncDto {
     private Long id;
     private String username;
     private String email;
+    private String phoneNumber;
     private Set<String> roles;
+    private String profilePicture;
+
 }
