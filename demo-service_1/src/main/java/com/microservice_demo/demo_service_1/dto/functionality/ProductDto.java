@@ -25,4 +25,6 @@ public class ProductDto implements Serializable {
     private String createdByUsername;
     private LocalDateTime createdOn;
     private LocalDateTime updatedOn;
+
+    private String imageUrl;
 }

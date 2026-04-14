@@ -44,6 +44,9 @@ public class Product {
     @Column(length = 50)
     private String sku;
 
+    @Column(name = "image_url" , length = 500)
+    private String imageUrl;
+
     @Column(length = 50)
     private String brand;
 

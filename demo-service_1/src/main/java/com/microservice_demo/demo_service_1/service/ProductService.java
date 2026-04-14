@@ -21,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +34,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final DemoService2FeignClient demoService2Client;
+    private final CloudinaryServiceImpl cloudinaryService;
 
     @Transactional
     @CacheEvict(value = "products" , allEntries = true)
@@ -189,6 +192,52 @@ public class ProductService {
         return 0L;
     }
 
+    @Transactional
+    @CacheEvict(value = {"products" , "productPages" , "activeProducts" , "categoryProducts"} , allEntries = true)
+    public ProductDto uploadProductImage(Long productId , MultipartFile file){
+        log.info("[DS1] Uploading image for productId={}", productId);
+
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+
+        if (product.getImageUrl() != null) {
+            String oldPublicId = cloudinaryService.extractPublicId(product.getImageUrl());
+
+            if (oldPublicId != null) {
+                cloudinaryService.deleteImage(oldPublicId);
+            }
+        }
+            String url = cloudinaryService.uploadProductImage(file, productId);
+            product.setImageUrl(url);
+            Product saved = productRepository.save(product);
+
+            log.info("[DS1] Product image uploaded | productId={} | url={}", productId, url);
+            return toDto(saved);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"products" , "productPages" , "activeProducts" , "categoryProducts"} , allEntries = true)
+    public ProductDto removeProductImage(Long productId){
+        log.info("[DS1] Removing image for productId={}", productId);
+
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+
+        if (product.getImageUrl() != null){
+            String publicId = cloudinaryService.extractPublicId(product.getImageUrl());
+
+            if (publicId != null){
+                cloudinaryService.deleteImage(publicId);
+            }
+            product.setImageUrl(null);
+            productRepository.save(product);
+
+            log.info("[DS1] Product image removed | productId={}", productId);
+        } else {
+            log.info("[DS1] No image to remove for productId={}", productId);
+        }
+        return toDto(product);
+    }
+
+
     private ProductDto toDto(Product product) {
         return ProductDto.builder()
                 .productId(product.getProductId())
@@ -199,6 +248,7 @@ public class ProductService {
                 .category(product.getCategory())
                 .sku(product.getSku())
                 .active(product.getActive())
+                .imageUrl(product.getImageUrl())
                 .createdByUserId(product.getCreatedBy() != null ? product.getCreatedBy().getUserId() : null)
                 .createdByUsername(product.getCreatedBy() != null ? product.getCreatedBy().getName() : null)
                 .createdOn(product.getCreatedOn())
