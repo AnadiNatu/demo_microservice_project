@@ -33,7 +33,7 @@ public class TestController {
     }
 
     @GetMapping("/protected")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<TestResponse> protectedEndPoint() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         log.info("[TestController] Protected endpoint accessed by: {}", auth.getName());

@@ -64,7 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicEndpoint(String uri){
-        return uri.startsWith("/api/auth/") ||
+        return uri.startsWith("/api/auth") ||
                 uri.startsWith("/api/otp/") ||
                 uri.startsWith("/api/password/") ||
                 uri.startsWith("/api/oauth2/") ||

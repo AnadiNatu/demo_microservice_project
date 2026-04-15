@@ -53,10 +53,10 @@ public class Users implements UserDetails {
     private boolean enabled = true;
 
     @Column(name = "de1_connection_flag")
-    private boolean de1ConnectionFlag;
+    private Boolean de1ConnectionFlag = false;
 
     @Column(name = "de2_connection_flag")
-    private boolean de2ConnectionFlag;
+    private Boolean de2ConnectionFlag = false;
 
     private LocalDateTime createdOn;
     private LocalDateTime updatedOn;

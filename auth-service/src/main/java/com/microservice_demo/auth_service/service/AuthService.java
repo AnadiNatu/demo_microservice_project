@@ -149,7 +149,7 @@ public class AuthService {
         log.info("Token refresh request received");
         String refreshToken = request.getRefreshToken();
 
-        if (!jwtTokenProvider.validateToken(refreshToken)){
+        if (jwtTokenProvider.validateToken(refreshToken)){
             log.error("Invalid refresh token provided");
             String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
             log.debug("Refreshing token for user: {}", username);

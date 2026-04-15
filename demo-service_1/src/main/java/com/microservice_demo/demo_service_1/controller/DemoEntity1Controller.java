@@ -28,7 +28,7 @@ public class DemoEntity1Controller {
     private final DemoEntity1ServiceInterface service;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<DemoEntity1Dto> create(@RequestBody CreateDemoEntity1Dto dto) {
         log.info("[DemoEntity1Controller] Creating DemoEntity1 for user: {}", dto.getUserId());
         DemoEntity1Dto created = service.create(dto);
@@ -37,7 +37,7 @@ public class DemoEntity1Controller {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<DemoEntity1Dto> get(@PathVariable Long id) {
         log.info("[DemoEntity1Controller] Fetching DemoEntity1 with ID: {}", id);
         DemoEntity1Dto entity = service.getEntity(id);
@@ -46,7 +46,7 @@ public class DemoEntity1Controller {
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<DemoEntity1Dto> getByUser(@PathVariable Long userId) {
         log.info("[DemoEntity1Controller] Fetching DemoEntity1 for user ID: {}", userId);
         DemoEntity1Dto entity = service.getDemoEntity1ByUserId(userId);
@@ -56,7 +56,7 @@ public class DemoEntity1Controller {
 
     // For Feign client calls (internal service-to-service communication)
     @GetMapping("/entity/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<DemoEntity1Dto> getEntityForFeign(@PathVariable Long id) {
         log.info("[DemoEntity1Controller] Feign request - Fetching DemoEntity1 with ID: {}", id);
         DemoEntity1Dto entity = service.getDemoEntity1(id);
@@ -65,7 +65,7 @@ public class DemoEntity1Controller {
     }
 
     @PostMapping("/users/list")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<List<UserDto>> getUsersByIdList(@RequestBody List<Long> userIds) {
         log.info("[DemoEntity1Controller] Fetching users by ID list: {}", userIds);
         List<UserDto> users = service.getUsersByIds(userIds);

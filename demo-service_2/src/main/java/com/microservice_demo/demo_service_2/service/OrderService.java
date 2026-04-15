@@ -40,9 +40,10 @@ public class OrderService {
     private final UserRepository userRepository;
     private final DemoService1FeignClient demoService1Client;
 
+//    @CacheEvict(value = "orders" , allEntries = true)
+
     @Stopwatch
     @Transactional
-//    @CacheEvict(value = "orders" , allEntries = true)
     @Caching(evict = {
             @CacheEvict(value = "userOrders" , allEntries = true),
             @CacheEvict(value = "statusOrders" , allEntries = true)

@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**" , "/actuator/**" , "/api/otp/**" , "/api/password/**" , "/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**" , "/actuator/**").permitAll()
-                        .requestMatchers("/api/profile/**").authenticated()
+                        .requestMatchers("/api/profile/**").hasAnyAuthority("ROLE_ADMIN" , "ROLE_USER")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)

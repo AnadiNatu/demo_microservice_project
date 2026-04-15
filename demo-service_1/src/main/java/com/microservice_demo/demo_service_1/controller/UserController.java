@@ -22,7 +22,7 @@ public class UserController {
     private final UserService service;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Users> create(@RequestBody CreateUserDto dto) {
         log.info("[UserController] Creating user: {}", dto.getEmail());
         Users created = service.createUser(dto);
@@ -31,7 +31,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Users> get(@PathVariable Long id) {
         log.info("[UserController] Fetching user with ID: {}", id);
         Users user = service.getUser(id);
@@ -66,7 +66,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/uploadLocal")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<String> uploadLocal(@PathVariable Long id, @RequestParam MultipartFile file) {
         log.info("[UserController] Uploading photo for user ID: {}", id);
         String result = service.uploadPhotoToFolder(id, file);
@@ -85,7 +85,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}/photoLocal")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<byte[]> getLocalPhoto(@PathVariable Long id) {
         log.info("[UserController] Fetching photo for user ID: {}", id);
         byte[] photo = service.getProfilePhotoFromFolder(id);

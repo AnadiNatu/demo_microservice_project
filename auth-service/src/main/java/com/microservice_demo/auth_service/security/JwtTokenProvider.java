@@ -100,7 +100,8 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
 
-        return (Set<String>) claims.get("roles");
+        List<String> rolesList = (List<String>) claims.get("roles");
+        return new HashSet<>(rolesList);
     }
 
     public boolean validateToken(String authToken){

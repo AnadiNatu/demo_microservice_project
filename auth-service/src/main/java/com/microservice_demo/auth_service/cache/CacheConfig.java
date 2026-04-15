@@ -23,7 +23,8 @@ public class CacheConfig {
         log.info(" Initializing caffeine cache manager for Auth Manager");
         CaffeineCacheManager cacheManager = new CaffeineCacheManager(
                 "users",
-                "tokens"
+                "tokens",
+                "token"
                 ,"userSync"
                 ,"refreshToken"
         );

@@ -13,13 +13,13 @@ import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+//import org.springframework.data.redis.cache.RedisCacheConfiguration;
+//import org.springframework.data.redis.cache.RedisCacheManager;
+//import org.springframework.data.redis.connection.RedisConnectionFactory;
+//import org.springframework.data.redis.core.RedisTemplate;
+//import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+//import org.springframework.data.redis.serializer.RedisSerializationContext;
+//import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -31,88 +31,88 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class CacheConfig {
 
-//    @Bean
-//    public CacheManager cacheManager(){
-//        log.info("Initializing Caffeine Cache Manager");
-//
-//        CaffeineCacheManager cacheManager = new CaffeineCacheManager("products" , "productPages" , "activeProducts" , "categoryProducts");
-//
-//        cacheManager.setCaffeine(caffeineCacheBuilder());
-//        log.info("Cache Manager initialized with caches : products , productPages , activeProducts , categoryProducts");
-//        return cacheManager;
-//    }
-//
-//    private Caffeine<Object , Object> caffeineCacheBuilder(){
-//        return Caffeine.newBuilder()
-//                .initialCapacity(100)
-//                .maximumSize(1000)
-//                .expireAfterWrite(10 , TimeUnit.MINUTES)
-//                .recordStats();
-//    }
+    @Bean
+    public CacheManager cacheManager(){
+        log.info("Initializing Caffeine Cache Manager");
+
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("products" , "productPages" , "activeProducts" , "categoryProducts");
+
+        cacheManager.setCaffeine(caffeineCacheBuilder());
+        log.info("Cache Manager initialized with caches : products , productPages , activeProducts , categoryProducts");
+        return cacheManager;
+    }
+
+    private Caffeine<Object , Object> caffeineCacheBuilder(){
+        return Caffeine.newBuilder()
+                .initialCapacity(100)
+                .maximumSize(1000)
+                .expireAfterWrite(10 , TimeUnit.MINUTES)
+                .recordStats();
+    }
 
 //    @Bean(name = "redisObjectMapper")
-
-    private ObjectMapper redisObjectMapper(){
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-
-        mapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
-        );
-
-        return mapper;
-    }
-
-    @Bean
-    public RedisTemplate<String , Object> redisTemplate(RedisConnectionFactory factory , ObjectMapper mapper){
-        RedisTemplate<String,Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
-
-        GenericJackson2JsonRedisSerializer  jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
-
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(jsonSerializer);
-        template.setHashValueSerializer(jsonSerializer);
-        template.afterPropertiesSet();
-
-        log.info("[DS1 Cache] RedisTemplate configured");
-        return template;
-    }
-
-    @Primary
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory factory){
-
-        ObjectMapper mapper = redisObjectMapper();
-
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
-
-        RedisCacheConfiguration base = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10))
-                .disableCachingNullValues()
-                .serializeKeysWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(jsonSerializer));
-
-        Map<String , RedisCacheConfiguration> perCacheConfig = new HashMap<>();
-        perCacheConfig.put("products" , base.entryTtl(Duration.ofMinutes(10)));
-        perCacheConfig.put("productPages" , base.entryTtl(Duration.ofMinutes(10)));
-        perCacheConfig.put("activeProducts" , base.entryTtl(Duration.ofMinutes(10)));
-        perCacheConfig.put("categoryProducts" , base.entryTtl(Duration.ofMinutes(10)));
-        perCacheConfig.put("productStatics" , base.entryTtl(Duration.ofMinutes(7)));
-
-        log.info("[DS1 cache] RedisCacheManager initialized with {} named caches" , perCacheConfig.size());
-
-        return RedisCacheManager
-                .builder(factory)
-                .withInitialCacheConfigurations(perCacheConfig)
-                .transactionAware()
-                .build();
-    }
+//
+//    private ObjectMapper redisObjectMapper(){
+//        ObjectMapper mapper = new ObjectMapper();
+//        mapper.registerModule(new JavaTimeModule());
+//
+//        mapper.activateDefaultTyping(
+//                LaissezFaireSubTypeValidator.instance,
+//                ObjectMapper.DefaultTyping.NON_FINAL,
+//                JsonTypeInfo.As.PROPERTY
+//        );
+//
+//        return mapper;
+//    }
+//
+//    @Bean
+//    public RedisTemplate<String , Object> redisTemplate(RedisConnectionFactory factory , ObjectMapper mapper){
+//        RedisTemplate<String,Object> template = new RedisTemplate<>();
+//        template.setConnectionFactory(factory);
+//
+//        GenericJackson2JsonRedisSerializer  jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
+//
+//        template.setKeySerializer(new StringRedisSerializer());
+//        template.setHashKeySerializer(new StringRedisSerializer());
+//        template.setValueSerializer(jsonSerializer);
+//        template.setHashValueSerializer(jsonSerializer);
+//        template.afterPropertiesSet();
+//
+//        log.info("[DS1 Cache] RedisTemplate configured");
+//        return template;
+//    }
+//
+//    @Primary
+//    @Bean
+//    public CacheManager cacheManager(RedisConnectionFactory factory){
+//
+//        ObjectMapper mapper = redisObjectMapper();
+//
+//        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(mapper);
+//
+//        RedisCacheConfiguration base = RedisCacheConfiguration.defaultCacheConfig()
+//                .entryTtl(Duration.ofMinutes(10))
+//                .disableCachingNullValues()
+//                .serializeKeysWith(
+//                        RedisSerializationContext.SerializationPair
+//                                .fromSerializer(new StringRedisSerializer()))
+//                .serializeValuesWith(
+//                        RedisSerializationContext.SerializationPair
+//                                .fromSerializer(jsonSerializer));
+//
+//        Map<String , RedisCacheConfiguration> perCacheConfig = new HashMap<>();
+//        perCacheConfig.put("products" , base.entryTtl(Duration.ofMinutes(10)));
+//        perCacheConfig.put("productPages" , base.entryTtl(Duration.ofMinutes(10)));
+//        perCacheConfig.put("activeProducts" , base.entryTtl(Duration.ofMinutes(10)));
+//        perCacheConfig.put("categoryProducts" , base.entryTtl(Duration.ofMinutes(10)));
+//        perCacheConfig.put("productStatics" , base.entryTtl(Duration.ofMinutes(7)));
+//
+//        log.info("[DS1 cache] RedisCacheManager initialized with {} named caches" , perCacheConfig.size());
+//
+//        return RedisCacheManager
+//                .builder(factory)
+//                .withInitialCacheConfigurations(perCacheConfig)
+//                .transactionAware()
+//                .build();
+//    }
 }
