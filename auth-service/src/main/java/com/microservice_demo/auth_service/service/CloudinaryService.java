@@ -47,69 +47,6 @@ public class CloudinaryService {
         }
     }
 
-    public String uploadProductImage(MultipartFile file , String productId , String userType){
-        validateImageFile(file);
-
-        String publicId = PRODUCT_FOLDER + "/" + userType.toLowerCase() + "/" + productId;
-        log.info("[CLOUDINARY] Uploading product image | productId={} | userType={} | filename={}",
-                productId, userType, file.getOriginalFilename());
-
-        try{
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes() , ObjectUtils.asMap(
-                    "public_id" , publicId,
-                    "resource_type" , "image",
-                    "folder" , PRODUCT_FOLDER + "/" + userType.toLowerCase(),
-                    "transformation" , new com.cloudinary.Transformation<>().width(800).height(800).crop("limit").quality("auto").fetchFormat("auto")
-            ));
-
-            String url = (String) uploadResult.get("secure_url");
-            log.info("[CLOUDINARY] Product image uploaded successfully | productId={} | url={}", productId, url);
-
-            return url;
-        }catch (IOException ex){
-            log.error("[CLOUDINARY] Product upload failed | productId={} | error={}", productId, ex.getMessage(), ex);
-            throw new RuntimeException("Failed to upload product image: " + ex.getMessage());
-        }
-    }
-
-    public String[] uploadProductImages(MultipartFile[] files , String productId , String userType){
-
-        if (files == null || files.length == 0){
-            throw new IllegalArgumentException("Minimum 10 images allowed per product");
-        }
-
-        log.info("[CLOUDINARY] Uploading {} product images | productId={} ", files.length , productId);
-        String[] url = new String[files.length];
-        for (int i = 0 ; i < files.length ; i++){
-            url[i] = uploadProductImage(files[i] , productId+"_img"+(i+1) , userType);
-        }
-
-        log.info("[CLOUDINARY] All product images upload | product={} | count={}" , productId , files.length);
-        return url;
-    }
-
-    public String uploadPdfDocument(MultipartFile file , String documentId , String userType){
-        validatePdfFile(file);
-        String publicId = DOCUMENT_FOLDER + "/" + userType.toLowerCase() + "/"  + documentId;
-
-        log.info("[CLOUDINARY] Uploading PDF document | documentId={} | userType={} | filename={}", documentId, userType, file.getOriginalFilename());
-        try{
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes() ,
-                    ObjectUtils.asMap(
-                            "public_id" , publicId,
-                            "resource_type" , publicId,
-                            "folder" , DOCUMENT_FOLDER + "/" + userType.toLowerCase()
-                    ));
-
-            String url = (String) uploadResult.get("secure_url");
-            log.info("[CLOUDINARY] PDF uploaded successfully | documentId={} | url={}", documentId, url);
-
-            return url;
-        }catch (IOException ex){
-            log.error("[CLOUDINARY] PDF upload failed | documentId={} | error={}", documentId, ex.getMessage(), ex);
-            throw new RuntimeException(ex);
-        }
-    }
 
     public void deleteImage(String publicId){
         log.info("[CLOUDINARY] Deleting image | publicId={}", publicId);
@@ -128,21 +65,8 @@ public class CloudinaryService {
         }
     }
 
-    public void deletePdf(String publicId){
-        log.info("[CLOUDINARY] Deleting PDF | publicId={}" , publicId);
-
-        try{
-            Map result = cloudinary.uploader().destroy(publicId , ObjectUtils.asMap("resource_type" , "raw"));
-
-            if ("ok".equals(result)){
-                log.info("[CLOUDINARY] PDF deleted successfully | publicId={}" , publicId);
-            }else {
-                log.warn("[CLOUDINARY] PDF deletion returned status = {} | publicId = {}" , result ,publicId);
-            }
-        }catch (IOException ex){
-            log.error("[CLOUDINARY] PDF delete failed | publicId = {} | error = {}" , publicId , ex.getMessage());
-            throw new RuntimeException("Failed to delete PDF :" + ex.getMessage() , ex);
-        }
+    public String getUrl(String publicId){
+        return cloudinary.url().generate(publicId);
     }
 
 //    Helper Method
@@ -167,29 +91,6 @@ private void validateImageFile(MultipartFile file) {
     }
 }
 
-    private void validatePdfFile(MultipartFile file){
-        if (file == null || file.isEmpty()){
-            throw new IllegalArgumentException("File is empty");
-        }
-
-        if (file.getSize() > 10*1024*1024){
-            throw new IllegalArgumentException("PDF size exceeds 10MD limit");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals("application/pdf")){
-            throw new IllegalArgumentException("File must be a PDF");
-        }
-
-        String filename = file.getOriginalFilename();
-        if (filename == null || !filename.toLowerCase().endsWith(".pdf")){
-            throw new IllegalArgumentException("File not supported");
-        }
-    }
-
-    public String getUrl(String publicId){
-        return cloudinary.url().generate(publicId);
-    }
 
     public String extractPublicId(String url){
         if (url == null || url.isBlank()){
@@ -216,5 +117,110 @@ private void validateImageFile(MultipartFile file) {
             return null;
         }
     }
+
+
+//    Not needed here
+
+//    public String uploadProductImage(MultipartFile file , String productId , String userType){
+//        validateImageFile(file);
+//
+//        String publicId = PRODUCT_FOLDER + "/" + userType.toLowerCase() + "/" + productId;
+//        log.info("[CLOUDINARY] Uploading product image | productId={} | userType={} | filename={}",
+//                productId, userType, file.getOriginalFilename());
+//
+//        try{
+//            Map uploadResult = cloudinary.uploader().upload(file.getBytes() , ObjectUtils.asMap(
+//                    "public_id" , publicId,
+//                    "resource_type" , "image",
+//                    "folder" , PRODUCT_FOLDER + "/" + userType.toLowerCase(),
+//                    "transformation" , new com.cloudinary.Transformation<>().width(800).height(800).crop("limit").quality("auto").fetchFormat("auto")
+//            ));
+//
+//            String url = (String) uploadResult.get("secure_url");
+//            log.info("[CLOUDINARY] Product image uploaded successfully | productId={} | url={}", productId, url);
+//
+//            return url;
+//        }catch (IOException ex){
+//            log.error("[CLOUDINARY] Product upload failed | productId={} | error={}", productId, ex.getMessage(), ex);
+//            throw new RuntimeException("Failed to upload product image: " + ex.getMessage());
+//        }
+//    }
+
+//    public String[] uploadProductImages(MultipartFile[] files , String productId , String userType){
+//
+//        if (files == null || files.length == 0){
+//            throw new IllegalArgumentException("Minimum 10 images allowed per product");
+//        }
+//
+//        log.info("[CLOUDINARY] Uploading {} product images | productId={} ", files.length , productId);
+//        String[] url = new String[files.length];
+//        for (int i = 0 ; i < files.length ; i++){
+//            url[i] = uploadProductImage(files[i] , productId+"_img"+(i+1) , userType);
+//        }
+//
+//        log.info("[CLOUDINARY] All product images upload | product={} | count={}" , productId , files.length);
+//        return url;
+//    }
+
+//    public String uploadPdfDocument(MultipartFile file , String documentId , String userType){
+//        validatePdfFile(file);
+//        String publicId = DOCUMENT_FOLDER + "/" + userType.toLowerCase() + "/"  + documentId;
+//
+//        log.info("[CLOUDINARY] Uploading PDF document | documentId={} | userType={} | filename={}", documentId, userType, file.getOriginalFilename());
+//        try{
+//            Map uploadResult = cloudinary.uploader().upload(file.getBytes() ,
+//                    ObjectUtils.asMap(
+//                            "public_id" , publicId,
+//                            "resource_type" , publicId,
+//                            "folder" , DOCUMENT_FOLDER + "/" + userType.toLowerCase()
+//                    ));
+//
+//            String url = (String) uploadResult.get("secure_url");
+//            log.info("[CLOUDINARY] PDF uploaded successfully | documentId={} | url={}", documentId, url);
+//
+//            return url;
+//        }catch (IOException ex){
+//            log.error("[CLOUDINARY] PDF upload failed | documentId={} | error={}", documentId, ex.getMessage(), ex);
+//            throw new RuntimeException(ex);
+//        }
+//    }
+
+
+//    private void validatePdfFile(MultipartFile file){
+//        if (file == null || file.isEmpty()){
+//            throw new IllegalArgumentException("File is empty");
+//        }
+//
+//        if (file.getSize() > 10*1024*1024){
+//            throw new IllegalArgumentException("PDF size exceeds 10MD limit");
+//        }
+//
+//        String contentType = file.getContentType();
+//        if (contentType == null || !contentType.equals("application/pdf")){
+//            throw new IllegalArgumentException("File must be a PDF");
+//        }
+//
+//        String filename = file.getOriginalFilename();
+//        if (filename == null || !filename.toLowerCase().endsWith(".pdf")){
+//            throw new IllegalArgumentException("File not supported");
+//        }
+//    }
+
+    //    public void deletePdf(String publicId){
+//        log.info("[CLOUDINARY] Deleting PDF | publicId={}" , publicId);
+//
+//        try{
+//            Map result = cloudinary.uploader().destroy(publicId , ObjectUtils.asMap("resource_type" , "raw"));
+//
+//            if ("ok".equals(result)){
+//                log.info("[CLOUDINARY] PDF deleted successfully | publicId={}" , publicId);
+//            }else {
+//                log.warn("[CLOUDINARY] PDF deletion returned status = {} | publicId = {}" , result ,publicId);
+//            }
+//        }catch (IOException ex){
+//            log.error("[CLOUDINARY] PDF delete failed | publicId = {} | error = {}" , publicId , ex.getMessage());
+//            throw new RuntimeException("Failed to delete PDF :" + ex.getMessage() , ex);
+//        }
+//    }
 
 }

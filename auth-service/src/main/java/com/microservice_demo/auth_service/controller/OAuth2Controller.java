@@ -41,13 +41,17 @@ public class OAuth2Controller {
             // Get provider ID
             String providerId = oAuth2User.getAttribute("sub");
             if (providerId == null) {
-                providerId = oAuth2User.getAttribute("id");
+                Object idObj = oAuth2User.getAttribute("sub");
+                providerId = idObj != null ? idObj.toString() : null;
             }
 
             log.info("[OAUTH2] Login attempt | provider={} | email={}", provider, email);
 
             // Handle OAuth user (create or update)
-            Users user = oAuth2Service.handleOAuthUser(email, name, provider, providerId);
+//            Users user = oAuth2Service.handleOAuthUser(email, name, provider, providerId);
+
+            // Creates or updates the user, and syncs profile picture from provider
+            Users user = oAuth2Service.handleOAuthUser(email, name, provider, providerId, oAuth2User);
 
             // Generate JWT token
             String token = jwtTokenProvider.generateTokenFromUser(user);

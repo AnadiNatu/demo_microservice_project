@@ -78,7 +78,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        log.info("[DS1 Security] 🔧 Configuring Security Filter Chain");
+        log.info("[DS1 Security] Configuring Security Filter Chain");
 
         http
                 .csrf(AbstractHttpConfigurer::disable)

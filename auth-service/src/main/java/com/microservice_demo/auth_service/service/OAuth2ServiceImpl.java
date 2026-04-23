@@ -37,22 +37,80 @@ public class OAuth2ServiceImpl {
                 .orElseGet(() -> createOAuthUser(email , name , provider , providerId));
     }
 
-//    private Users createUser(String email , String name , String provider , String providerId){
-//        Users user = new Users();
-//        user.setEmail(email);
-//
-//        if (name != null && !name.isBlank()){
-//            String[] parts = name.split("\\s+" , 2);
-//            user.setUsername(parts[0]);
-//        }else {
-//            user.setUsername(email.split("@")[0]);
-//        }
-//        user.setRoles();
-//        user.setProvider(provider);
-//        user.setProviderId(providerId);
-//
-//        return userRepository.save(user);
-//    }
+//       * Overload used by the OAuth2 success handler where the full OAuth2User
+//     * object is available, allowing profile picture extraction.
+    public Users handleOAuthUser(String email, String name,
+                                 String provider, String providerId,
+                                 OAuth2User oAuth2User) {
+        log.info("[OAUTH2] Handling OAuth user (full) | email={} | provider={}", email, provider);
+
+        return userRepository.findByEmail(email)
+                .map(existing -> {
+                    log.info("[OAUTH2] Existing user found | email={}", email);
+                    existing.setProvider(provider);
+                    existing.setProviderId(providerId);
+
+                    // Update profile picture if the provider supplies one and we don't have one
+                    if (existing.getProfilePicture() == null && oAuth2User != null) {
+                        String picture = extractPictureUrl(oAuth2User, provider);
+                        if (picture != null) {
+                            existing.setProfilePicture(picture);
+                        }
+                    }
+                    return userRepository.save(existing);
+                })
+                .orElseGet(() -> createOAuthUser(email, name, provider, providerId, oAuth2User));
+    }
+
+    private Users createOAuthUser(String email, String name,
+                                  String provider, String providerId,
+                                  OAuth2User oAuth2User) {
+        log.info("[OAUTH2] Creating new OAuth user | email={} | provider={}", email, provider);
+
+        Set<String> roles = new HashSet<>();
+        roles.add("ROLE_USER");
+
+        // Derive a username from the display name or the email local-part
+        String username;
+        if (name != null && !name.isBlank()) {
+            username = name.trim().split("\\s+")[0];
+        } else {
+            username = email.split("@")[0];
+        }
+
+        // Extract profile picture URL provided by the OAuth2 provider
+        String picture = null;
+        if (oAuth2User != null) {
+            picture = extractPictureUrl(oAuth2User, provider);
+        }
+
+        Users user = Users.builder()
+                .username(username)
+                .email(email)
+                .password("")           // no password for OAuth2 users
+                .phoneNumber(null)
+                .roles(roles)
+                .provider(provider)
+                .providerId(providerId)
+                .profilePicture(picture)
+                .enabled(true)
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .build();
+
+        Users savedUser = userRepository.save(user);
+        log.info("[OAUTH2] User created | email={} | provider={} | picture={}",
+                email, provider, picture != null ? "yes" : "none");
+
+        try {
+            authService.syncUserToMicroservices(savedUser);
+        } catch (Exception ex) {
+            log.warn("[OAUTH2] Failed to sync user to microservices | error={}", ex.getMessage());
+        }
+
+        return savedUser;
+    }
 
     private Users createOAuthUser(String email, String name, String provider, String providerId){
         log.info("[OAUTH2] Creating new OAuth user | email = {} | provider = {}" , email , provider);
@@ -92,6 +150,22 @@ public class OAuth2ServiceImpl {
             log.warn("⚠️ [OAUTH2] Failed to sync user to microservices: {}", ex.getMessage());
         }
         return savedUser;
+    }
+
+    private String extractPictureUrl(OAuth2User oAuth2User , String provider){
+        if ("GOOGLE".equalsIgnoreCase(provider)){
+            return oAuth2User.getAttribute("picture");
+        }
+
+        if ("GITHUB".equalsIgnoreCase(provider)){
+            return oAuth2User.getAttribute("avatar_url");
+        }
+//        Generic fallback
+        String pic = oAuth2User.getAttribute("picture");
+        if (pic == null){
+            pic = oAuth2User.getAttribute("avatar_url");
+        }
+        return pic;
     }
 
     public Map<String , Object> handleFailure(String error){

@@ -13,35 +13,86 @@ public class RouteValidator {
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public static final List<String> openApiEndpoints = List.of(
+//Core auth - no token
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/refresh",
             "/api/auth/health",
             "/api/auth/validate",
+            "/api/auth/test",
+
+//            Phone OTP login
+            "/api/auth/phone/**",
+
+//            OTP send/verify
+            "/api/otp/**",
+
+//            Password forgot
+            "/api/password/**",
+
+//            Email utility endpoint
+            "/api/email/**",
+
+//            Notification
+            "/api/notification/**",
+
+//            OAuth2 authorization & callback flows
+            "/api/oauth2/**",
+            "/oauth2/**",
+            "/login/oauth2/**",
+
+//            Demo-Service1 internal sync
             "/api/users/sync",
+            "/api/users/sync/profile-picture",
+
+//            Demo-Service2 internal sync & public lookup
             "/api/en2/sync",
-            "/api/*/sync" , // auth-service Feign :- POST /api/users/sync , /api/en2/sync
-            "/api/en2/user/**" , // public user lookup in demo-service2
+            "/api/en2/sync/profile-picture",
+            "/api/en2/user/**",
 
-            //            Profile endpoints
-            "/api/users/sync/profile-picture",  // Demo-Service1
-            "/api/en2/sync/profile-picture",    // Demo-Service2
-
-            "/api/auth/phone/**" , // Phone authentication
-            "/api/otp/**" , // OTP send/verify
-            "/api/password/**" , // Password reset/change
-            "/api/oauth2/**"  , // OAuth2 callbacks
-            "/oauth2/**" , // OAuth2 authorization
-            "/login/oauth2/**" , // OAuth2 login
-
+//            Smoke-test public endpoint
             "/api/en1/test/public",
             "/api/en2/test/public",
+            "/api/*/test/public",
 
-            "/api/*/test/public", // smoke-test : /api/en1/test/public , /api/en2/test/public
-            "/api/orders/product/*/count" , // demo-service1 Feign : GET order count for a product
-            "/api/orders/user/*/exists",
-            "/eureka/**",
+//            Feign inter-service calls (demo-services 1&2)
+            "/api/orders/product/*/count",
+            "/api/orders/user/*/exist",
+
+//            Infra + Health
+"/eureka/**",
             "/actuator/**"
+
+
+            //            "/api/auth/register",
+//            "/api/auth/login",
+//            "/api/auth/refresh",
+//            "/api/auth/health",
+//            "/api/auth/validate",
+//            "/api/users/sync",
+//            "/api/en2/sync",
+//            "/api/*/sync" , // auth-service Feign :- POST /api/users/sync , /api/en2/sync
+//            "/api/en2/user/**" , // public user lookup in demo-service2
+//
+//            //            Profile endpoints
+//            "/api/users/sync/profile-picture",  // Demo-Service1
+//            "/api/en2/sync/profile-picture",    // Demo-Service2
+//
+//            "/api/auth/phone/**" , // Phone authentication
+//            "/api/otp/**" , // OTP send/verify
+//            "/api/password/**" , // Password reset/change
+//            "/api/oauth2/**"  , // OAuth2 callbacks
+//            "/oauth2/**" , // OAuth2 authorization
+//            "/login/oauth2/**" , // OAuth2 login
+//
+//            "/api/en1/test/public",
+//            "/api/en2/test/public",
+//
+//            "/api/*/test/public", // smoke-test : /api/en1/test/public , /api/en2/test/public
+//            "/api/orders/product/*/count" , // demo-service1 Feign : GET order count for a product
+//            "/api/orders/user/*/exists",
+//            "/eureka/**",
+//            "/actuator/**"
     );
 
 //    public Predicate<ServerHttpRequest> isSecured = request -> openApiEndpoints.stream().noneMatch(uri -> request.getURI().getPath().contains(uri));

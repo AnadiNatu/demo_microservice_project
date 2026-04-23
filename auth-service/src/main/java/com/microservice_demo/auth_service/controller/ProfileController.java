@@ -56,8 +56,9 @@ public class ProfileController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         String email = userDetails.getUsername();
+        Users user = requireUser(email);
 
-       Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+//       Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
        return ResponseEntity.ok(Map.of(
                "photoUrl", user.getProfilePicture() != null ? user.getProfilePicture() : "",
@@ -93,20 +94,64 @@ public class ProfileController {
         ));
     }
 
-    @GetMapping("/me")
-public ResponseEntity<Map<String , Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+    @PutMapping("me")
+    public ResponseEntity<Map<String, Object>> updateProfile(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         String email = userDetails.getUsername();
-        Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        Users user = requireUser(email);
+
+        String newUsername = body.get("username");
+        String newPhone    = body.get("phoneNumber");
+
+        if (newUsername != null && !newUsername.isBlank()) {
+            // Prevent duplicate usernames
+            if (userRepository.existsByUsername(newUsername)
+                    && !newUsername.equals(user.getUsername())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Username '" + newUsername + "' is already taken"
+                ));
+            }
+            user.setUsername(newUsername);
+        }
+
+        if (newPhone != null && !newPhone.isBlank()) {
+            user.setPhoneNumber(newPhone);
+        }
+
+        userRepository.save(user);
+        log.info("[PROFILE] Profile updated | userId={}", user.getId());
 
         return ResponseEntity.ok(Map.of(
-                "id" , user.getId() ,
-                "username" , user.getUsername() ,
-                "email" , user.getEmail() ,
+                "message",     "Profile updated successfully",
+                "username",    user.getUsername(),
+                "phoneNumber", user.getPhoneNumber() != null ? user.getPhoneNumber() : ""
+        ));
+    }
+
+@GetMapping("me")
+public ResponseEntity<Map<String , Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails){
+
+        String email = userDetails.getUsername();
+        Users user = requireUser(email);
+
+        return ResponseEntity.ok(Map.of(
+                "id" , user.getId(),
+                "username" , user.getUsername(),
+                "email" , user.getEmail(),
                 "phoneNumber" , user.getPhoneNumber() != null ? user.getPhoneNumber() : "",
                 "profilePicture" , user.getProfilePicture() != null ? user.getProfilePicture() : "",
                 "roles" , user.getRoles(),
                 "provider" , user.getProvider() != null ? user.getProvider() : "LOCAL"
         ));
-    }
+}
+
+//    Private helper
+private Users requireUser(String email) {
+    return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found: " + email));
+}
+
 }
 

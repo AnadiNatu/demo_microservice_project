@@ -81,8 +81,8 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
             // 🔥 FIXED: role is Set<String>, not Enum
             dto.setUserRole(String.join(",", u.getRole()));
 
-            dto.setDe1ConnectionFlag(u.isDe1ConnectionFlag());
-            dto.setDe2ConnectionFlag(u.isDe2ConnectionFlag());
+            dto.setDe1ConnectionFlag(u.getDe1ConnectionFlag());
+            dto.setDe2ConnectionFlag(u.getDe2ConnectionFlag());
 
             dtos.add(dto);
         }

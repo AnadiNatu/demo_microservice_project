@@ -58,6 +58,27 @@ public class ProductController {
         return ResponseEntity.ok(deactivated);
     }
 
+
+    @PostMapping("/{productId}/image")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ProductDto> uploadProductImage(
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file) {
+        log.info("[ProductController] [ADMIN] Upload image for productId={}", productId);
+        ProductDto updated = productService.uploadProductImage(productId, file);
+        log.info("[ProductController] Image uploaded | productId={} | url={}",
+                productId, updated.getImageUrl());
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{productId}/image")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ProductDto> removeProductImage(@PathVariable Long productId) {
+        log.info("[ProductController] [ADMIN] Remove image for productId={}", productId);
+        ProductDto updated = productService.removeProductImage(productId);
+        log.info("[ProductController] Image removed | productId={}", productId);
+        return ResponseEntity.ok(updated);
+    }
     // ========== USER + ADMIN ENDPOINTS ==========
 
     @GetMapping("/{productId}")
@@ -151,15 +172,15 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{productId}/image")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<ProductDto> uploadProductImage(@PathVariable Long productId , @RequestParam("file")MultipartFile file){
-        log.info("[ProductController] Upload image for product ID: {}", productId);
-
-        ProductDto updated = productService.uploadProductImage(productId, file);
-
-        log.info("[ProductController] ✅ Image uploaded successfully");
-
-        return ResponseEntity.ok(updated);
-    }
+//    @PostMapping("/{productId}/image")
+//    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+//    public ResponseEntity<ProductDto> uploadProductImage(@PathVariable Long productId , @RequestParam("file")MultipartFile file){
+//        log.info("[ProductController] Upload image for product ID: {}", productId);
+//
+//        ProductDto updated = productService.uploadProductImage(productId, file);
+//
+//        log.info("[ProductController] ✅ Image uploaded successfully");
+//
+//        return ResponseEntity.ok(updated);
+//    }
 }
