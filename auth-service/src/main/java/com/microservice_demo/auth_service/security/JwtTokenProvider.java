@@ -132,7 +132,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .claims()
                 .add(claims)
-                .subject(users.getEmail())
+                .subject(users.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis()+jwtExpiration))
                 .and()

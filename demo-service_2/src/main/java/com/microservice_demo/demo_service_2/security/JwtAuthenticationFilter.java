@@ -115,16 +115,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isPublicUri(String uri) {
         return uri.equals("/api/en2/sync") ||
-                uri.startsWith("/api/en2/user/") ||
-                uri.contains("/api/en2/test/public/") ||
+                uri.startsWith("/api/en2/user") ||
+                uri.contains("/api/en2/test/public") ||
 
                 uri.equals("/api/en2/sync/profile-picture")||
                 uri.matches("/api/orders/product/\\d+/count") ||
                 uri.matches("/api/orders/user/\\d+/exist") ||
                 uri.startsWith("/actuator/") ||
 
-                (uri.startsWith("/api/orders/product/") && uri.endsWith("/count") )||
-                (uri.startsWith("/api/orders/user/") && uri.endsWith("/exists"));
+                (uri.startsWith("/api/orders/product") && uri.endsWith("/count") )||
+                (uri.startsWith("/api/orders/user") && uri.endsWith("/exists"));
     }
 
     private List<SimpleGrantedAuthority> parseRoles(String rolesHeader) {

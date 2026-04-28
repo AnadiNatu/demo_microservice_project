@@ -8,6 +8,7 @@ import com.microservice_demo.auth_service.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,7 +29,7 @@ public class ProfileController {
     private final UserRepository userRepository;
     private final AuthService authService;
 
-    @PostMapping("photo")
+    @PostMapping(value = "photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> uploadProfilePhoto(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -36,7 +37,7 @@ public class ProfileController {
         String email = userDetails.getUsername();
         log.info("[PROFILE] Photo upload request | email={}", email);
 
-        Users user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        Users user = userRepository.findByUsername(email).orElseThrow(() -> new RuntimeException("User not found"));
 
         String url = cloudinaryService.uploadProfilePhoto(file , "user_"+user.getId());
         user.setProfilePicture(url);
@@ -133,8 +134,8 @@ public class ProfileController {
 @GetMapping("me")
 public ResponseEntity<Map<String , Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails){
 
-        String email = userDetails.getUsername();
-        Users user = requireUser(email);
+        String username = userDetails.getUsername();
+        Users user = requireUser(username);
 
         return ResponseEntity.ok(Map.of(
                 "id" , user.getId(),
@@ -148,9 +149,9 @@ public ResponseEntity<Map<String , Object>> getCurrentUser(@AuthenticationPrinci
 }
 
 //    Private helper
-private Users requireUser(String email) {
-    return userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found: " + email));
+private Users requireUser(String username) {
+    return userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found: " + username));
 }
 
 }

@@ -31,7 +31,7 @@ public class CloudinaryService {
         try{
             Map uploadResult = cloudinary.uploader().upload(file.getBytes()  ,
                     ObjectUtils.asMap(
-                            "public_id" , true,
+                            "public_id" , publicId,
                             "overwrite" , true,
                             "resource_type" , "image",
                             "folder" , PROFILE_FOLDER,
