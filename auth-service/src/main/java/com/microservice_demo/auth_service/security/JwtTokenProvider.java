@@ -38,22 +38,6 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-//    public String generateToken(Authentication authentication){
-//        Users userPrinciple = (Users) authentication.getPrincipal();
-//
-//        Set<String> roles = userPrinciple.getAuthorities().stream()
-//                .map(GrantedAuthority::getAuthority)
-//                .collect(Collectors.toSet());
-//
-//        return Jwts.builder().subject(userPrinciple.getUsername())
-//                .claim("roles" , roles)
-//                .claim("email" , userPrinciple.getEmail())
-//                .issuedAt(new Date())
-//                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-//                .signWith(getSigningKey())
-//                .compact();
-//    }
-
     public String generateToken(Authentication authentication){
 
         Users user = (Users) authentication.getPrincipal();

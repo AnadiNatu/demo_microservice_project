@@ -17,7 +17,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-//        //  Sends OTP simultaneously to email AND phone (SMS).
+//  Sends OTP simultaneously to email AND phone (SMS).
     @PostMapping("otp/dual")
     public ResponseEntity<Map<String , Object>> sendDualChannelOtp(@RequestBody Map<String , String> request){
 
@@ -40,7 +40,7 @@ public class NotificationController {
         ));
     }
 
-//    //  Sends a welcome email AND SMS to a newly registered user.
+//  Sends a welcome email AND SMS to a newly registered user.
     @PostMapping("welcome")
     public ResponseEntity<Map<String , Object>> sendWelcomeNotification(@RequestBody Map<String , String> request){
 
@@ -63,7 +63,7 @@ public class NotificationController {
         ));
     }
 
-//        //  Sends a password-reset OTP to the provided email address.
+//  Sends a password-reset OTP to the provided email address.
 @PostMapping("/password-reset-otp")
 public ResponseEntity<Map<String, Object>> sendPasswordResetOtp(
         @RequestBody Map<String, String> request) {
@@ -86,7 +86,7 @@ public ResponseEntity<Map<String, Object>> sendPasswordResetOtp(
     ));
 }
 
-//     //  Sends a login-alert SMS to the user's phone number.
+//  Sends a login-alert SMS to the user's phone number.
 @PostMapping("/login-alert")
 public ResponseEntity<Map<String, Object>> sendLoginAlert(
         @RequestBody Map<String, String> request) {

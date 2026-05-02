@@ -143,48 +143,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)  // FIX: was "Role"
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
-
     }
-
 }
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-//
-//
-//        if(request.getRequestURI().contains("/api/en2/sync") ||
-//        request.getRequestURI().contains("/api/en2/user/")){
-//            filterChain.doFilter(request , response);
-//            return;
-//        }
-//
-//        String username = request.getHeader("X-User-Username");
-//        String rolesHeader = request.getHeader("X-User-Roles");
-//
-//        String authHeader = request.getHeader("Authorization");
-//        String token = null;
-//
-//        if(authHeader != null && authHeader.startsWith("Bearer ")){
-//            token = authHeader.substring(7);
-//        }
-//
-//        if (username != null && rolesHeader != null && SecurityContextHolder.getContext().getAuthentication() == null){
-//
-//            String cleanedRoleString = rolesHeader
-//                    .replace("[" , "")
-//                    .replace("]" , "")
-//                    .replace("\"" , "")
-//                    .trim();
-//
-//            List<SimpleGrantedAuthority> authorities = Arrays.stream(cleanedRoleString.split(","))
-//                    .map(String::trim)
-//                    .filter(role -> !role.isEmpty())
-//                    .map(SimpleGrantedAuthority::new)
-//                    .collect(Collectors.toList());
-//
-//            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username , null , authorities);
-//
-//            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//            SecurityContextHolder.getContext().setAuthentication(authToken);
-//        }
-//        filterChain.doFilter(request , response);
-//    }

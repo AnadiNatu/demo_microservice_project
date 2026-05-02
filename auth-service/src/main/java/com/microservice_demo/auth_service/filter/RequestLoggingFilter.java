@@ -18,7 +18,6 @@ import java.util.UUID;
 @Slf4j
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String traceId = UUID.randomUUID().toString().substring(0 , 8);

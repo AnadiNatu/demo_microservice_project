@@ -52,5 +52,4 @@ public class AuthController {
         response.put("timestamp" , LocalDateTime.now());
         return ResponseEntity.ok(response);
     }
-
 }

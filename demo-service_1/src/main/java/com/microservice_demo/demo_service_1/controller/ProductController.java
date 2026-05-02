@@ -79,8 +79,8 @@ public class ProductController {
         log.info("[ProductController] Image removed | productId={}", productId);
         return ResponseEntity.ok(updated);
     }
-    // ========== USER + ADMIN ENDPOINTS ==========
 
+    // ========== USER + ADMIN ENDPOINTS ==========
     @GetMapping("/{productId}")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long productId) {
@@ -171,16 +171,4 @@ public class ProductController {
         log.info("[ProductController] ✅ Order stats retrieved - totalOrders={}", orderCount);
         return ResponseEntity.ok(response);
     }
-
-//    @PostMapping("/{productId}/image")
-//    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-//    public ResponseEntity<ProductDto> uploadProductImage(@PathVariable Long productId , @RequestParam("file")MultipartFile file){
-//        log.info("[ProductController] Upload image for product ID: {}", productId);
-//
-//        ProductDto updated = productService.uploadProductImage(productId, file);
-//
-//        log.info("[ProductController] ✅ Image uploaded successfully");
-//
-//        return ResponseEntity.ok(updated);
-//    }
 }

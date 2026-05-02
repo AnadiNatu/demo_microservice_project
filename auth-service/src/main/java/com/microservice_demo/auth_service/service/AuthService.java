@@ -60,12 +60,12 @@ public class AuthService {
         Set<String> roles = new HashSet<>();
         if (request.getRoles() == null || request.getRoles().isEmpty()) {
             roles.add("ROLE_USER");
-            log.debug("🔧 No roles provided, assigning default: ROLE_USER");
+            log.debug("No roles provided, assigning default: ROLE_USER");
         } else {
             request.getRoles().forEach(role -> {
                 String processedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
                 roles.add(processedRole);
-                log.debug("🔧 Added role: {}", processedRole);
+                log.debug("Added role: {}", processedRole);
             });
         }
 
@@ -129,7 +129,7 @@ public class AuthService {
                 }
             }
 
-            log.info("✅ Login successful for user: {}", users.getUsername());
+            log.info("Login successful for user: {}", users.getUsername());
             return AuthResponse.builder()
                     .token(jwt)
                     .refreshToken(refreshToken)
@@ -164,7 +164,7 @@ public class AuthService {
             String newJwt = jwtTokenProvider.generateToken(authentication);
             String newRefreshToken = jwtTokenProvider.generateRefreshToken(username);
 
-            log.info("✅ Token refreshed successfully for user: {}", username);
+            log.info("Token refreshed successfully for user: {}", username);
 
             return AuthResponse.builder()
                     .token(newJwt)
@@ -181,14 +181,14 @@ public class AuthService {
 
     @Cacheable(value = "token" , key = "#request.token")
     public ValidateTokenResponse validateToken(ValidateTokenRequest request) {
-        log.debug("🔍 Token validation request received");
+        log.debug("Token validation request received");
         try {
             String token = request.getToken();
             if (jwtTokenProvider.validateToken(token)) {
                 String username = jwtTokenProvider.getUsernameFromToken(token);
                 Set<String> roles = jwtTokenProvider.getRolesFromToken(token);
 
-                log.info("✅ Token is valid for user: {} with roles: {}", username, roles);
+                log.info("Token is valid for user: {} with roles: {}", username, roles);
 
                 return ValidateTokenResponse.builder()
                         .valid(true)
@@ -197,14 +197,14 @@ public class AuthService {
                         .message("Token is valid")
                         .build();
             } else {
-                log.warn("⚠️ Invalid token provided");
+                log.warn("Invalid token provided");
                 return ValidateTokenResponse.builder()
                         .valid(false)
                         .message("Token is inalid")
                         .build();
             }
         } catch (Exception ex) {
-            log.error("❌ Token validation failed: {}", ex.getMessage());
+            log.error("Token validation failed: {}", ex.getMessage());
             return ValidateTokenResponse.builder()
                     .valid(false)
                     .message("Token validation failed: " + ex.getMessage())
@@ -258,7 +258,7 @@ public class AuthService {
                 System.out.println("Failed to sync to Demo-Service2: " + ex.getMessage());
             }
         }catch (Exception ex){
-            log.error("❌ Failed to sync to Demo-Service2: {} - Error: {}", user.getUsername(), ex.getMessage());
+            log.error("Failed to sync to Demo-Service2: {} - Error: {}", user.getUsername(), ex.getMessage());
         }
     }
 
@@ -270,7 +270,6 @@ public class AuthService {
     }
 
 //    Profile photo sync to all microservice
-
     public void syncProfilePictureUpdate(Long userId , String profilePictureUrl){
         log.info("Syncing profile picture update for userId: {}", userId);
 

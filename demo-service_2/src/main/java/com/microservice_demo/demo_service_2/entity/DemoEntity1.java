@@ -40,38 +40,6 @@ public class DemoEntity1 {
         updatedOn = LocalDateTime.now();
     }
 
-    public Long getDemoEn1Id() {
-        return demoEn1Id;
-    }
-
-    public void setDemoEn1Id(Long demoEn1Id) {
-        this.demoEn1Id = demoEn1Id;
-    }
-
-    public String getDemoData() {
-        return demoData;
-    }
-
-    public void setDemoData(String demoData) {
-        this.demoData = demoData;
-    }
-
-    public LocalDateTime getCreatedOn() {
-        return createdOn;
-    }
-
-    public void setCreatedOn(LocalDateTime createdOn) {
-        this.createdOn = createdOn;
-    }
-
-    public LocalDateTime getUpdatedOn() {
-        return updatedOn;
-    }
-
-    public void setUpdatedOn(LocalDateTime updatedOn) {
-        this.updatedOn = updatedOn;
-    }
-
     public Users getUser() {
         return user;
     }

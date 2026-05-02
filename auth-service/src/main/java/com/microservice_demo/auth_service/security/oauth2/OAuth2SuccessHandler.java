@@ -16,8 +16,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+
 
 @Component
 @RequiredArgsConstructor
@@ -40,10 +39,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 //        String picture = oAuth2User.getAttribute("picture");
 
         log.info("[OAUTH2] Google login | email={} | name={}" , email , name);
-
-//        Users userEntity = userType2Repository.findByEmail(email).orElseGet(() -> {
-
-//        log.info("[OAUTH2 New Google Login | email={} | name={}]",email,name);
 
         response.sendRedirect("/api/oauth2/success");
     }

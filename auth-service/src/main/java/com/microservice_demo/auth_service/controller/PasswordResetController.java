@@ -73,38 +73,6 @@ public class PasswordResetController {
         ));
     }
 
-
-        private ResponseEntity<Map<String , Object>> handleForgot(Object user , String email , String method){
-            String phoneNumber = extractNumber(user);
-
-            if ("sms".equalsIgnoreCase(method)){
-                if (phoneNumber == null || phoneNumber.isBlank()){
-                    return ResponseEntity.badRequest().body(Map.of(
-
-                            "error" , "No phone registered for this account",
-                            "suggestion" , "Use email method instead"
-                    ));
-                }
-                smsService.sendOtpViaSms(phoneNumber);
-
-                return ResponseEntity.ok(Map.of(
-                        "message" , "OTP sent to yur phone number",
-                        "method" , "sms",
-                        "phone" , maskPhone(phoneNumber),
-                        "expiresIn" , "5 minutes"
-                ));
-            }
-
-            emailService.sendOtpViaEmail(email);
-
-            return ResponseEntity.ok(Map.of(
-                    "message" , "OTP sent to your email",
-                    "method" , "email",
-                    "email" , maskEmail(email),
-                    "expiresIn" , "5 minutes"
-            ));
-    }
-
     @PostMapping("reset")
     public ResponseEntity<Map<String , Object>> resetPassword(@RequestParam(name = "identifier")String identifier ,@RequestParam(name = "otp")String otp , @RequestParam(name = "newPassword")String newPassword) {
         log.info("[PASSWORD_RESET] Reset attempt | identifier={}", identifier);
@@ -161,32 +129,6 @@ public class PasswordResetController {
                 "message" , "Password reset successful",
                 "email" , user.getEmail()
         ));
-//        var users = userRepository.findByPhoneNumber(normalizeIdentifier);
-//        if (users.isPresent()) {
-//            var user = users.get();
-//            user.setPassword(passwordEncoder.encode(newPassword));
-//            userRepository.save(user);
-//
-//            log.info("[PASSWORD_RESET] Password updated | userType=TYPE1 | email={}", identifier);
-//
-//            try {
-//                emailService.sendSimpleEmail(
-//                        user.getEmail(),
-//                        "Password Changed Successfully",
-//                        "Hi " + user.getUsername() + ",\n\nYour password has been successfully changed.\n\n" +
-//                                "If you didn't make this change, please contact support immediately."
-//                );
-//            } catch (Exception ex) {
-//                log.warn("[PASSWORD_RESET] Confirmation email failed | email={}", identifier);
-//            }
-//            return ResponseEntity.ok(Map.of(
-//                    "message", "Password reset successful",
-//                    "userType", "TYPE1"
-//            ));
-//        }
-//        return ResponseEntity.badRequest().body(Map.of(
-//                "error", "User not found"
-//        ));
     }
 
     @PostMapping("change")
@@ -225,7 +167,6 @@ public class PasswordResetController {
 
 
 //    Helpers
-
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return email;
         String[] parts = email.split("@");
@@ -243,6 +184,7 @@ public class PasswordResetController {
         if (phone == null || phone.length() < 4) return phone;
         return phone.substring(0, phone.length() - 4) + "****";
     }
+
     private String formatToE164(String phone){
         if (phone == null || phone.isBlank()){
             throw new IllegalArgumentException("Phone number cannot be empty");
@@ -253,7 +195,6 @@ public class PasswordResetController {
         if (phone.startsWith("91")) return "+" + phone;
 
         return "+91" + phone;
-
     }
 
 
