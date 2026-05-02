@@ -58,7 +58,7 @@ public class DemoEntity2Controller {
         }
         dto.setUserRole(role);
 
-        Users createdUser = service.createUser(dto);
+        Users createdUser = service.createUser(dto , syncDto.getId());
 
         // Sync profile picture if already set (e.g. OAuth2 provider picture)
         if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {

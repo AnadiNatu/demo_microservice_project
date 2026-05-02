@@ -37,24 +37,42 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
                 .userIds(new ArrayList<>())
                 .demoEn1Id(null)
                 .build();
-        return toDto(repo.save(entity));
+        return safeToDto(repo.save(entity));
     }
 
     @Override
     public DemoEntity2Dto get(Long id) {
         DemoEntity2 entity = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
-        return toDto(entity);
+        return safeToDto(entity);
     }
 
     @Override
     public DemoEntity2Dto addUsersAndDemoEntity1(AddUserListAndDE1ToDE2Dto dto) {
+
         DemoEntity2 entity = repo.findById(dto.getDemoEn2Id())
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
-        // store IDs only
-        entity.getUserIds().addAll(dto.getUserIds());
+
+        // ✅ Validate Users locally
+        List<Long> validUsers = dto.getUserIds().stream()
+                .filter(userRepo::existsById)
+                .toList();
+
+        if (validUsers.isEmpty()) {
+            throw new RuntimeException("No valid users found. Sync required.");
+        }
+
+        // ✅ Validate DemoEntity1 remotely
+        try {
+            feign.getDemoEntity1ForEn2(dto.getDemoEn1Id());
+        } catch (Exception ex) {
+            throw new RuntimeException("DemoEntity1 not available. Sync required.");
+        }
+
+        entity.getUserIds().addAll(validUsers);
         entity.setDemoEn1Id(dto.getDemoEn1Id());
-        return toDto(repo.save(entity));
+
+        return safeToDto(repo.save(entity));
     }
 
     @Override
@@ -62,29 +80,25 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         DemoEntity2 entity = repo.findById(dto.getDemoEn2Id())
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
         entity.getUserIds().add(dto.getUserId());
-        return toDto(repo.save(entity));
+        return safeToDto(repo.save(entity));
     }
 
     @Override
-    public Users createUser(CreateUserDto dto) {
-        Optional<Users> existing = userRepo.findAll().stream().filter(u -> u.getEmail().equals(dto.getEmail())).findFirst();
+    public Users createUser(CreateUserDto dto, Long userId) {
 
-        if (existing.isPresent()){
-            return existing.get();
-        }
-        Users user = new Users();
+        Users user = userRepo.findById(userId).orElse(new Users());
+
+        user.setUserId(userId); // 🔥 FIX: preserve ID
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone());
-        try{
-            UserRoles roleEnum = UserRoles.valueOf(
-                    dto.getUserRole().replace("ROLE_" , "").toUpperCase());
-            user.setRole(roleEnum);
-        }catch (Exception ex){
+
+        try {
+            user.setRole(UserRoles.valueOf(dto.getUserRole().toUpperCase()));
+        } catch (Exception ex) {
             user.setRole(UserRoles.USER);
         }
-        user.setDe1ConnectionFlag(false);
-        user.setDe2ConnectionFlag(false);
+
         return userRepo.save(user);
     }
 
@@ -93,7 +107,8 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         return userRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
     }
 
-    private DemoEntity2Dto toDto(DemoEntity2 entity) {
+    private DemoEntity2Dto safeToDto(DemoEntity2 entity) {
+
         DemoEntity2Dto dto = new DemoEntity2Dto();
 
         dto.setDemoEn2Id(entity.getDemoEn2Id());
@@ -103,21 +118,27 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         dto.setPriceField(entity.getPriceField());
 
         List<Long> ids = entity.getUserIds();
-        List<UserDto> users = feign.getUsersByIdList(ids);
         dto.setUserId(ids);
 
-        if (users != null && !users.isEmpty()) {
+        try {
+            List<UserDto> users = feign.getUsersByIdList(ids);
             dto.setUserName(users.stream().map(UserDto::getName).toList());
-        } else {
-            dto.setUserName(new ArrayList<>());
+        } catch (Exception ex) {
+            log.warn("User fetch failed → fallback");
+            dto.setUserName(List.of("Unavailable"));
         }
+
         if (entity.getDemoEn1Id() != null) {
-            DemoEntity1Dto de1 = feign.getDemoEntity1ForEn2(entity.getDemoEn1Id());
-            dto.setDe1Id(de1.getDemoEn1Id());
+            try {
+                DemoEntity1Dto de1 = feign.getDemoEntity1ForEn2(entity.getDemoEn1Id());
+                dto.setDe1Id(de1.getDemoEn1Id());
+            } catch (Exception ex) {
+                log.warn("DemoEntity1 fetch failed");
+            }
         }
+
         return dto;
     }
-
     public void updateProfilePicture(Long userId , String profilePicture){
         Users user = userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
 

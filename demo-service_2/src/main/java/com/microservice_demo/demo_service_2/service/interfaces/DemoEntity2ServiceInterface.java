@@ -9,6 +9,6 @@ public interface DemoEntity2ServiceInterface {
     public DemoEntity2Dto get(Long id);
     public DemoEntity2Dto addUsersAndDemoEntity1(AddUserListAndDE1ToDE2Dto dto);
     public DemoEntity2Dto addUserToDemoEntity2(AddUserToListDE1ForDE2Dto dto);
-    public Users createUser(CreateUserDto dto);
+    public Users createUser(CreateUserDto dto , Long userId);
     public Users getUser(Long id);
 }

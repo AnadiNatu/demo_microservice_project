@@ -74,6 +74,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .roles(roles)
+                .phoneNumber(request.getPhoneNumber())
                 .enabled(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)
