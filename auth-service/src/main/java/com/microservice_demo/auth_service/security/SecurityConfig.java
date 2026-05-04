@@ -51,16 +51,25 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**" , "/actuator/**" , "/api/otp/**" , "/api/password/**" , "/api/oauth2/**" , "/oauth2/**" , "/login/oauth2/**" , "/api/email/**" , "/api/notification/**").permitAll()
-                        .requestMatchers("/api/profile/**").hasAnyAuthority("ROLE_ADMIN" , "ROLE_USER")
-                        .anyRequest().authenticated())
+                        .requestMatchers(
+                                "/api/auth/**", "/actuator/**", "/api/otp/**", "/api/password/**",
+                                "/api/oauth2/**", "/oauth2/**", "/login/oauth2/**", "/api/email/**", "/api/notifications/**"
+                        ).permitAll()
+                        .requestMatchers("/api/profile/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_USER")
+                        .anyRequest().authenticated()
+                )
+
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)
-                        .failureUrl("/api/oauth2/failure"))
-                .addFilterBefore(jwtAuthenticationFilter , UsernamePasswordAuthenticationFilter.class);
+                        .failureUrl("/api/oauth2/failure")
+                )
 
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.authenticationProvider(authenticationProvider());
 
         return http.build();

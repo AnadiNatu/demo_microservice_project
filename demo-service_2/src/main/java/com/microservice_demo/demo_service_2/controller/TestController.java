@@ -35,7 +35,7 @@ public class TestController {
         return new TestResponse(
                 "success",
                 "Protected endpoint - Requires authentication",
-                "demo-service1",
+                "demo-service2",
                 auth.getName(),
                 auth.getAuthorities().toString(),
                 LocalDateTime.now()
@@ -65,7 +65,7 @@ public class TestController {
         Map<String , Object> response = new HashMap<>();
         response.put("status" , "success");
         response.put("message", "Data created successfully");
-        response.put("service", "demo-service1");
+        response.put("service", "demo-service2");
         response.put("receivedData", data);
         response.put("createdBy", auth.getName());
         response.put("timestamp", LocalDateTime.now());
@@ -79,7 +79,7 @@ public class TestController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         Map<String, Object> response = new HashMap<>();
-        response.put("service", "demo-service1");
+        response.put("service", "demo-service2");
         response.put("username", auth.getName());
         response.put("authorities", auth.getAuthorities());
         response.put("authenticated", auth.isAuthenticated());

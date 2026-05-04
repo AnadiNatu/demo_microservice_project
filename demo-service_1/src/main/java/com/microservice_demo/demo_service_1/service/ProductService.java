@@ -37,7 +37,7 @@ public class ProductService {
     private final CloudinaryServiceImpl cloudinaryService;
 
     @Transactional
-    @CacheEvict(value = "products" , allEntries = true)
+    @CacheEvict(value = {"products" , "productPages" , "activeProducts" , "categoryProducts"} , allEntries = true)
     public ProductDto createProduct(CreateProductDto dto){
         log.info("Creating new product : {}" , dto.getProductName());
 
@@ -74,30 +74,24 @@ public class ProductService {
         return toDto(savedProduct);
     }
 
-    @Cacheable(value = "products" , key = "#productId")
-    public ProductDto getProduct(Long productId){
-        log.info("Fetching product with ID : {}" , productId);
-
-        Product product = productRepository.findById(productId).orElseThrow(() -> {
-            log.error("Product not found : {}" , productId);
-            return new ResourceNotFoundException("Product not found");
-        });
-
-        log.info("Product found : {}" , product.getName());
+    @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "#productId")
+    public ProductDto getProduct(Long productId) {
+        log.info("Fetching product with ID: {}", productId);
+        Product product = productRepository.findByIdWithCreatedBy(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+        log.info("Product found: {}", product.getName());
         return toDto(product);
     }
 
-    @Cacheable(value = "productPages" , key = "#page + '_' #size + '_' + #sortBy")
-    public Page<ProductDto> getAllProducts(int page , int size , String sortBy){
-        log.info("Fetching products - Page : {} , Size : {} , SortBy : {}" , page , size , sortBy);
+    @Transactional(readOnly = true)
+    @Cacheable(value = "productPages", key = "#page + '_' + #size + '_' + #sortBy")
+    public Page<ProductDto> getAllProducts(int page, int size, String sortBy) {
+        log.info("Fetching products — page={} size={} sortBy={}", page, size, sortBy);
 
-        Pageable pageable = PageRequest.of(page , size , Sort.by(sortBy).descending());
-        Page<Product> productPage = productRepository.findAll(pageable);
-
-        log.info("Found {} products on page {}" , productPage.getNumber() , page);
-
-        return productPage.map(this::toDto);
-
+        String safeSort = isSafeProductSortField(sortBy) ? sortBy : "createdOn";
+        Pageable pageable = PageRequest.of(page, size, Sort.by(safeSort).descending());
+        return productRepository.findAll(pageable).map(this::toDto);
     }
 
     @Cacheable(value = "activeProducts" , key = "#page + '_' + #size")
@@ -115,7 +109,7 @@ public class ProductService {
     public Page<ProductDto> getProductsByCategory(String category , int page , int size){
         log.info("Fetching products by category : {} - Page : {} , Size : {}" , category , page , size);
 
-        Pageable pageable = PageRequest.of(page , size , Sort.by("productName"));
+        Pageable pageable = PageRequest.of(page , size , Sort.by("name"));
         Page<Product> productPage = productRepository.findByActiveTrueAndCategory(category , pageable);
 
         log.info("Found {} products in category : {}" , productPage.getTotalElements());
@@ -125,7 +119,7 @@ public class ProductService {
     public Page<ProductDto> searchProducts(String keyword, int page, int size) {
         log.info("Searching products with keyword: {} - Page: {}, Size: {}", keyword, page, size);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("productName").ascending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         Page<Product> productPage = productRepository.searchProducts(keyword, pageable);
 
         log.info("Found {} products matching keyword: {}", productPage.getTotalElements(), keyword);
@@ -167,6 +161,7 @@ public class ProductService {
     }
 
 //    Used by Demo Service 2
+    @Transactional(readOnly = true)
      public List<ProductDto> getProductsByIds(List<Long> productIds){
         log.info("Fetching products by IDs : {}" , productIds);
 
@@ -238,7 +233,21 @@ public class ProductService {
     }
 
 
+//    Helpers
     private ProductDto toDto(Product product) {
+        Long createdByUserId = null;
+        String createdByUsername = null;
+
+        try {
+            if (product.getCreatedBy() != null) {
+                createdByUserId = product.getCreatedBy().getUserId();
+                createdByUsername = product.getCreatedBy().getName();
+            }
+        } catch (Exception ex) {
+            // Lazy proxy not initialised — leave fields null rather than crashing
+            log.debug("Could not resolve createdBy for productId={}", product.getProductId());
+        }
+
         return ProductDto.builder()
                 .productId(product.getProductId())
                 .productName(product.getName())
@@ -249,10 +258,17 @@ public class ProductService {
                 .sku(product.getSku())
                 .active(product.getActive())
                 .imageUrl(product.getImageUrl())
-                .createdByUserId(product.getCreatedBy() != null ? product.getCreatedBy().getUserId() : null)
-                .createdByUsername(product.getCreatedBy() != null ? product.getCreatedBy().getName() : null)
+                .createdByUserId(createdByUserId)
+                .createdByUsername(createdByUsername)
                 .createdOn(product.getCreatedOn())
                 .updatedOn(product.getUpdatedOn())
                 .build();
+    }
+
+    private boolean isSafeProductSortField(String field) {
+        return field != null && List.of(
+                "createdOn", "updatedOn", "name", "price",
+                "stockQuantity", "category"
+        ).contains(field);
     }
 }

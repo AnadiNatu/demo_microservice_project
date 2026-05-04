@@ -67,7 +67,23 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String getUsernameFromToken(String token){
+    public String generateTokenFromUser(Users user) {
+        List<String> roles = new ArrayList<>(user.getRoles());
+
+        return Jwts.builder()
+                .subject(user.getUsername())
+                .claim("roles", roles)           // ← fixed: was "role"
+                .claim("email", user.getEmail())
+                .claim("userId", user.getId())
+                .claim("provider", user.getProvider())
+                .claim("providerId", user.getProviderId())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String getUsernameFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -77,7 +93,7 @@ public class JwtTokenProvider {
     }
 
     @SuppressWarnings("unchecked")
-    public Set<String> getRolesFromToken(String token){
+    public Set<String> getRolesFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -85,42 +101,24 @@ public class JwtTokenProvider {
                 .getPayload();
 
         List<String> rolesList = (List<String>) claims.get("roles");
+        if (rolesList == null) return new HashSet<>();
         return new HashSet<>(rolesList);
     }
 
-    public boolean validateToken(String authToken){
-        try{
+    public boolean validateToken(String authToken) {
+        try {
             Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(authToken);
-
             return true;
-        }catch (MalformedJwtException ex){
-            logger.error("Invalid JWT token : {}" , ex.getMessage());
-        }catch (ExpiredJwtException ex){
-            logger.error("JWT token is expired: {}" , ex.getMessage());
-        }catch (UnsupportedJwtException ex){
-            logger.error("JWT token is unsupported : {}" , ex.getMessage());
-        }catch (IllegalArgumentException ex){
-            logger.error("JWT claims string is empty : {}" , ex.getMessage());
+        } catch (MalformedJwtException ex) {
+            logger.error("Invalid JWT token : {}", ex.getMessage());
+        } catch (ExpiredJwtException ex) {
+            logger.error("JWT token is expired: {}", ex.getMessage());
+        } catch (UnsupportedJwtException ex) {
+            logger.error("JWT token is unsupported : {}", ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            logger.error("JWT claims string is empty : {}", ex.getMessage());
         }
-
         return false;
-    }
-
-    public String generateTokenFromUser(Users users){
-        Map<String , Object> claims = new HashMap<>();
-
-        claims.put("role" , users.getRoles());
-        claims.put("provider" , users.getProvider());
-        claims.put("providerId" , users.getProviderId());
-
-        return Jwts.builder()
-                .claims()
-                .add(claims)
-                .subject(users.getUsername())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis()+jwtExpiration))
-                .and()
-                .signWith(getSigningKey()).compact();
     }
 
     public long getExpirationMs(){

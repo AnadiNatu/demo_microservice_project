@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -109,24 +111,59 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request){
-        log.info("Login request received for username: {}", request.getUsername());
-        try{
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername() , request.getPassword())
-            );
+    public AuthResponse login(LoginRequest request) {
+        log.info("Login attempt for identifier: {}", request.getUsername());
 
+        // 1. Resolve identifier → Users entity
+        String identifier = request.getUsername().trim();
+        Optional<Users> userOpt = userRepository.findByUsername(identifier);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByEmail(identifier);
+        }
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByPhoneNumber(identifier);
+        }
+
+        if (userOpt.isEmpty()) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
+        Users resolvedUser = userOpt.get();
+
+        // 2. If this is a pure OAuth2 account (no local password), issue token directly
+        if (resolvedUser.getPassword() == null || resolvedUser.getPassword().isBlank()) {
+            log.info("OAuth2-only account — issuing token directly | email={}", resolvedUser.getEmail());
+            String jwt = jwtTokenProvider.generateTokenFromUser(resolvedUser);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(resolvedUser.getUsername());
+
+            return AuthResponse.builder()
+                    .token(jwt)
+                    .refreshToken(refreshToken)
+                    .username(resolvedUser.getUsername())
+                    .email(resolvedUser.getEmail())
+                    .roles(resolvedUser.getRoles())
+                    .expiresIn(jwtTokenProvider.getExpirationMs())
+                    .build();
+        }
+
+        // 3. Standard password authentication (using the resolved username so
+        //    DaoAuthenticationProvider can load the user correctly)
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            resolvedUser.getUsername(), request.getPassword())
+            );
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             String jwt = jwtTokenProvider.generateToken(authentication);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(request.getUsername());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(resolvedUser.getUsername());
             Users users = (Users) authentication.getPrincipal();
 
-            if (users.getPhoneNumber() != null && !users.getPhoneNumber().isBlank()){
-                try{
-                    notificationService.sendLoginAlert(users.getPhoneNumber() , users.getUsername());
-                }catch (Exception ex){
-                    log.warn("Login alert SMS falied : {}" , ex.getMessage());
+            if (users.getPhoneNumber() != null && !users.getPhoneNumber().isBlank()) {
+                try {
+                    notificationService.sendLoginAlert(users.getPhoneNumber(), users.getUsername());
+                } catch (Exception ex) {
+                    log.warn("Login alert SMS failed: {}", ex.getMessage());
                 }
             }
 
@@ -139,8 +176,9 @@ public class AuthService {
                     .roles(users.getRoles())
                     .expiresIn(jwtTokenProvider.getExpirationMs())
                     .build();
-        }catch (Exception ex){
-            log.error("Login failed for username : {} - Error : {}" , request.getUsername() , ex.getMessage());
+
+        } catch (Exception ex) {
+            log.error("Login failed for identifier: {} — {}", identifier, ex.getMessage());
             throw ex;
         }
     }
@@ -150,34 +188,35 @@ public class AuthService {
         log.info("Token refresh request received");
         String refreshToken = request.getRefreshToken();
 
-        if (!jwtTokenProvider.validateToken(refreshToken)){
-            log.error("Invalid refresh token provided");
-            String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
-            log.debug("Refreshing token for user: {}", username);
-
-            Users users = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-
-            Users userDetails = Users.build(users);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails , null , userDetails.getAuthorities()
-            );
-
-            String newJwt = jwtTokenProvider.generateToken(authentication);
-            String newRefreshToken = jwtTokenProvider.generateRefreshToken(username);
-
-            log.info("Token refreshed successfully for user: {}", username);
-
-            return AuthResponse.builder()
-                    .token(newJwt)
-                    .refreshToken(newRefreshToken)
-                    .username(userDetails.getUsername())
-                    .email(userDetails.getEmail())
-                    .roles(users.getRoles())
-                    .expiresIn(jwtTokenProvider.getExpirationMs())
-                    .build();
-        }else {
+        // Reject invalid / expired tokens immediately
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            log.error("Invalid or expired refresh token provided");
             throw new RuntimeException("Invalid refresh token");
         }
+
+        String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
+        log.debug("Refreshing token for user: {}", username);
+
+        Users users = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        Users userDetails = Users.build(users);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()
+        );
+
+        String newJwt = jwtTokenProvider.generateToken(authentication);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(username);
+
+        log.info("Token refreshed successfully for user: {}", username);
+        return AuthResponse.builder()
+                .token(newJwt)
+                .refreshToken(newRefreshToken)
+                .username(userDetails.getUsername())
+                .email(userDetails.getEmail())
+                .roles(users.getRoles())
+                .expiresIn(jwtTokenProvider.getExpirationMs())
+                .build();
     }
 
     @Cacheable(value = "token" , key = "#request.token")

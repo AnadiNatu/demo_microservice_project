@@ -28,7 +28,11 @@ public class UserService implements UserServiceInterface {
     private final String uploadFolder = "C:/user-profile-photos/";
 
     @Override
-    public Users createUser(CreateUserDto dto) {
+    public Users createUser(CreateUserDto dto){
+        return createUser(dto , null);
+    }
+
+    public Users createUser(CreateUserDto dto , Long authServiceId) {
 
         Optional<Users> existingByEmail = repo.findAll().stream()
                 .filter(u -> u.getEmail().equals(dto.getEmail()))

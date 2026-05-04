@@ -47,11 +47,11 @@ public class DemoEntity1Controller {
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public ResponseEntity<DemoEntity1Dto> getByUser(@PathVariable Long userId) {
-        log.info("[DemoEntity1Controller] Fetching DemoEntity1 for user ID: {}", userId);
-        DemoEntity1Dto entity = service.getDemoEntity1ByUserId(userId);
-        log.info("[DemoEntity1Controller] ✅ DemoEntity1 found for user");
-        return ResponseEntity.ok(entity);
+    public ResponseEntity<List<DemoEntity1Dto>> getByUser(@PathVariable Long userId) {
+        log.info("[DemoEntity1Controller] Fetching DemoEntity1 list for userId: {}", userId);
+        List<DemoEntity1Dto> entities = service.getDemoEntity1ByUserId(userId);
+        log.info("[DemoEntity1Controller] Found {} entities for userId: {}", entities.size(), userId);
+        return ResponseEntity.ok(entities);
     }
 
     // For Feign client calls (internal service-to-service communication)

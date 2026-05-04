@@ -12,7 +12,7 @@ public interface DemoEntity1ServiceInterface {
 
     DemoEntity1Dto create(CreateDemoEntity1Dto request);
     DemoEntity1Dto getEntity(Long id);
-    DemoEntity1Dto getDemoEntity1ByUserId(Long id);
+    List<DemoEntity1Dto> getDemoEntity1ByUserId(Long id);
     // NEW: return list of Users by ID for Feign usage
     List<UserDto> getUsersByIds(List<Long> userIds);
 

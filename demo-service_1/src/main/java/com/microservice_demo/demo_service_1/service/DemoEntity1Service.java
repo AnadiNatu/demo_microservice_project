@@ -12,10 +12,12 @@ import com.microservice_demo.demo_service_1.repository.UserRepository;
 import com.microservice_demo.demo_service_1.service.interfaces.DemoEntity1ServiceInterface;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,25 +45,30 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DemoEntity1Dto getEntity(Long id) {
         DemoEntity1 entity = repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("DemoEntity1 not found: " + id));
-
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "DemoEntity1 not found: " + id));
         return toDto(entity);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DemoEntity1Dto getDemoEntity1(Long id) {
         return getEntity(id);
     }
 
+    // Now returns a List<DemoEntity1Dto>.
     @Override
-    public DemoEntity1Dto getDemoEntity1ByUserId(Long userId) {
-        DemoEntity1 entity = repo.findByUserUserId(userId);
-        if (entity == null)
-            throw new ResourceNotFoundException("DemoEntity1 not found for userId: " + userId);
-
-        return toDto(entity);
+    @Transactional(readOnly = true)
+    public List<DemoEntity1Dto> getDemoEntity1ByUserId(Long userId) {
+        List<DemoEntity1> entities = repo.findByUserUserId(userId);
+        if (entities.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "No DemoEntity1 found for userId: " + userId);
+        }
+        return entities.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
@@ -81,9 +88,9 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
             // 🔥 FIXED: role is Set<String>, not Enum
             dto.setUserRole(String.join(",", u.getRole()));
 
-            dto.setDe1ConnectionFlag(u.getDe1ConnectionFlag());
-            dto.setDe2ConnectionFlag(u.getDe2ConnectionFlag());
-
+//            de1ConnectionFlag and de2ConnectionFlag are declared
+            dto.setDe1ConnectionFlag(Boolean.TRUE.equals(u.getDe1ConnectionFlag()));
+            dto.setDe2ConnectionFlag(Boolean.TRUE.equals(u.getDe2ConnectionFlag()));
             dtos.add(dto);
         }
 

@@ -160,15 +160,28 @@ public class ProductController {
     @GetMapping("/{productId}/order-stats")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> getProductOrderStats(@PathVariable Long productId) {
-        log.info("[ProductController] Get order stats - productId={}", productId);
+        log.info("[ProductController] Get order stats — productId={}", productId);
         ProductDto product = productService.getProduct(productId);
         Long orderCount = productService.getProductOrderCount(productId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("product", product);
         response.put("totalOrders", orderCount);
-
-        log.info("[ProductController] ✅ Order stats retrieved - totalOrders={}", orderCount);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/order-stats/batch")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<Map<String, Object>> getBatchProductOrderStats(
+            @RequestBody List<Long> productIds) {
+        log.info("[ProductController] Batch order stats — productIds={}", productIds);
+        Map<String, Object> result = new HashMap<>();
+        for (Long pid : productIds) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("product", productService.getProduct(pid));
+            entry.put("totalOrders", productService.getProductOrderCount(pid));
+            result.put(String.valueOf(pid), entry);
+        }
+        return ResponseEntity.ok(result);
     }
 }

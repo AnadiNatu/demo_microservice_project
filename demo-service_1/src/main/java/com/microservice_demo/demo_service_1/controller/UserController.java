@@ -41,27 +41,28 @@ public class UserController {
 
     @PostMapping("/sync")
     public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto) {
-        log.info("[UserController] 📥 Received user sync request for: {}", syncDto.getEmail());
+        log.info("[UserController] Received user sync for: {}", syncDto.getEmail());
 
         CreateUserDto dto = new CreateUserDto();
         dto.setName(syncDto.getUsername());
         dto.setEmail(syncDto.getEmail());
-        dto.setPhone("");
+        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
 
-        // Convert Set<String> roles to single role string
-        String role = "USER";
+        String role = "ROLE_USER";
         if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
-            role = syncDto.getRoles().iterator().next().replace("ROLE_", "");
+            String raw = syncDto.getRoles().iterator().next();
+            role = raw.startsWith("ROLE_") ? raw : "ROLE_" + raw.toUpperCase();
         }
         dto.setUserRole(role);
 
-        Users createdUser = service.createUser(dto);
+        // BUG FIX: pass the auth-service ID so the local row uses the same PK
+        Users createdUser = service.createUser(dto, syncDto.getId());
 
-        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()){
-            service.updateProfilePicture(createdUser.getUserId() , syncDto.getProfilePicture());
+        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
+            service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
         }
-        log.info("[UserController] ✅ User synced successfully: {}", createdUser.getEmail());
 
+        log.info("[UserController] User synced: {}", createdUser.getEmail());
         return ResponseEntity.ok("User synced successfully to Demo-Service1");
     }
 
@@ -70,17 +71,17 @@ public class UserController {
     public ResponseEntity<String> uploadLocal(@PathVariable Long id, @RequestParam MultipartFile file) {
         log.info("[UserController] Uploading photo for user ID: {}", id);
         String result = service.uploadPhotoToFolder(id, file);
-        log.info("[UserController] ✅ Photo uploaded: {}", result);
+        log.info("[UserController]Photo uploaded: {}", result);
         return ResponseEntity.ok(result);
     }
 
     @PostMapping("/sync/profile-picture")
     public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
-        log.info("📥 [DS1] Received profile picture sync | userId={}", syncDto.getUserId());
+        log.info("[DS1] Received profile picture sync | userId={}", syncDto.getUserId());
 
         service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
 
-        log.info("✅ [DS1] Profile picture synced | userId={}", syncDto.getUserId());
+        log.info("[DS1] Profile picture synced | userId={}", syncDto.getUserId());
         return "Profile picture synced successfully";
     }
 
@@ -89,7 +90,7 @@ public class UserController {
     public ResponseEntity<byte[]> getLocalPhoto(@PathVariable Long id) {
         log.info("[UserController] Fetching photo for user ID: {}", id);
         byte[] photo = service.getProfilePhotoFromFolder(id);
-        log.info("[UserController] ✅ Photo retrieved successfully");
+        log.info("[UserController]Photo retrieved successfully");
         return ResponseEntity.ok(photo);
     }
 }
