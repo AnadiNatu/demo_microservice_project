@@ -18,7 +18,7 @@ public interface DemoService1FeignClient {
     DemoEntity1Dto getDemoEntity1(@PathVariable Long id);
 
     @GetMapping("/api/en1/user/{userId}")
-    DemoEntity1Dto getDemoEntity1ByUser(@PathVariable Long userId);
+    List<DemoEntity1Dto> getDemoEntity1ByUser(@PathVariable Long userId);
 
     @GetMapping("/api/en1/entity/{id}")
     DemoEntity1Dto getDemoEntity1ForEn2(@PathVariable Long id);

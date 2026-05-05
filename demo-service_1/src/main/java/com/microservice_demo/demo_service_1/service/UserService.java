@@ -45,6 +45,10 @@ public class UserService implements UserServiceInterface {
 
         Users user = new Users();
 
+        if (authServiceId != null) {
+            user.setUserId(authServiceId);
+        }
+
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");

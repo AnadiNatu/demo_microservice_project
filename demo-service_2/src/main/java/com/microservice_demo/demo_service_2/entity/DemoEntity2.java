@@ -25,7 +25,7 @@ public class DemoEntity2 {
     private double priceField;
 
     // Store user IDs instead of Users entities
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "demo_en2_user_ids",
             joinColumns = @JoinColumn(name = "demo_en2_id")

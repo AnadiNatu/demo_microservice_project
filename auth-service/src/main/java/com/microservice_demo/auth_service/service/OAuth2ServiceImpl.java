@@ -23,7 +23,7 @@ public class OAuth2ServiceImpl {
     private final DemoService2FeignClient demoService2Client;
     private final AuthService authService;
 
-    public Users handleOAuthUser(String email , String name , String provider , String providerId){
+    public Users handleOAuthUser(String email , String name , String provider , String providerId , OAuth2User oAuth2User){
         log.info("[OAUTH2] Handling OAuth user | email={} | provider={}", email, provider);
 
         return userRepository.findByEmail(email)
@@ -32,6 +32,13 @@ public class OAuth2ServiceImpl {
 
                     existing.setProvider(provider);
                     existing.setProviderId(providerId);
+
+                    // Fill in profile picture from provider if not already set
+                    if (existing.getProfilePicture() == null && oAuth2User != null) {
+                        String picture = extractPictureUrl(oAuth2User, provider);
+                        if (picture != null) existing.setProfilePicture(picture);
+                    }
+
                     return userRepository.save(existing);
                 })
                 .orElseGet(() -> createOAuthUser(email , name , provider , providerId));
@@ -39,28 +46,34 @@ public class OAuth2ServiceImpl {
 
 //       * Overload used by the OAuth2 success handler where the full OAuth2User
 //     * object is available, allowing profile picture extraction.
-    public Users handleOAuthUser(String email, String name,
-                                 String provider, String providerId,
-                                 OAuth2User oAuth2User) {
-        log.info("[OAUTH2] Handling OAuth user (full) | email={} | provider={}", email, provider);
 
-        return userRepository.findByEmail(email)
-                .map(existing -> {
-                    log.info("[OAUTH2] Existing user found | email={}", email);
-                    existing.setProvider(provider);
-                    existing.setProviderId(providerId);
+//    New Overload Method
+public Users handleOAuthUser(String email, String name, String provider, String providerId) {
+    return handleOAuthUser(email, name, provider, providerId, null);
+}
 
-                    // Update profile picture if the provider supplies one and we don't have one
-                    if (existing.getProfilePicture() == null && oAuth2User != null) {
-                        String picture = extractPictureUrl(oAuth2User, provider);
-                        if (picture != null) {
-                            existing.setProfilePicture(picture);
-                        }
-                    }
-                    return userRepository.save(existing);
-                })
-                .orElseGet(() -> createOAuthUser(email, name, provider, providerId, oAuth2User));
-    }
+//    public Users handleOAuthUser(String email, String name,
+//                                 String provider, String providerId,
+//                                 OAuth2User oAuth2User) {
+//        log.info("[OAUTH2] Handling OAuth user (full) | email={} | provider={}", email, provider);
+//
+//        return userRepository.findByEmail(email)
+//                .map(existing -> {
+//                    log.info("[OAUTH2] Existing user found | email={}", email);
+//                    existing.setProvider(provider);
+//                    existing.setProviderId(providerId);
+//
+//                    // Update profile picture if the provider supplies one and we don't have one
+//                    if (existing.getProfilePicture() == null && oAuth2User != null) {
+//                        String picture = extractPictureUrl(oAuth2User, provider);
+//                        if (picture != null) {
+//                            existing.setProfilePicture(picture);
+//                        }
+//                    }
+//                    return userRepository.save(existing);
+//                })
+//                .orElseGet(() -> createOAuthUser(email, name, provider, providerId, oAuth2User));
+//    }
 
     private Users createOAuthUser(String email, String name,
                                   String provider, String providerId,

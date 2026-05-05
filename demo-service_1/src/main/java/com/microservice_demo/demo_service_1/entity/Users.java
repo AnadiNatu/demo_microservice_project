@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
 public class Users implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY , generator = "ds1_users_seq")
+    @SequenceGenerator(name = "ds1_users_seq" , sequenceName = "ds1_users_seq" , allocationSize = 1 , initialValue = 10000)
     private Long userId;
 
     private String name;
@@ -52,10 +53,10 @@ public class Users implements UserDetails {
     private boolean credentialsNonExpired = true;
     private boolean enabled = true;
 
-    @Column(name = "de1_connection_flag")
+    @Column(name = "de1_connection_flag" , nullable = false , columnDefinition = "boolean default false")
     private Boolean de1ConnectionFlag = false;
 
-    @Column(name = "de2_connection_flag")
+    @Column(name = "de2_connection_flag" , nullable = false , columnDefinition = "boolean default false")
     private Boolean de2ConnectionFlag = false;
 
     private LocalDateTime createdOn;
@@ -88,8 +89,6 @@ public class Users implements UserDetails {
     public String getPassword() {
         return ""; // Demo-Service1 does not authenticate users, only Auth-Service does.
     }
-
-
 
     @Override
     public boolean isAccountNonExpired() {

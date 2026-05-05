@@ -44,33 +44,33 @@ public class DemoEntity2Controller {
 
     @PostMapping("/sync")
     public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto){
-        log.info("[DS2] Received user sync | email={}", syncDto.getEmail());
+        log.info("[DS2] Received user sync | email={} id={}", syncDto.getEmail(), syncDto.getId());
 
         CreateUserDto dto = new CreateUserDto();
         dto.setName(syncDto.getUsername());
         dto.setEmail(syncDto.getEmail());
         dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
 
-
         String role = "USER";
         if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
-            role = syncDto.getRoles().iterator().next().replace("ROLE_", "").toUpperCase();
+            role = syncDto.getRoles().iterator().next()
+                    .replace("ROLE_", "").toUpperCase();
         }
         dto.setUserRole(role);
 
-        Users createdUser = service.createUser(dto , syncDto.getId());
+        // BUG FIX: pass auth-service ID so row uses the same PK
+        Users createdUser = service.createUser(dto, syncDto.getId());
 
-        // Sync profile picture if already set (e.g. OAuth2 provider picture)
         if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
             service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
         }
 
-        log.info("[DS2] User synced successfully | email={}", createdUser.getEmail());
+        log.info("[DS2] User synced | email={}", createdUser.getEmail());
         return ResponseEntity.ok("User synced successfully to Demo-Service2");
     }
 
-    @GetMapping("/user/{id}")
 //    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
+    @GetMapping("/user/{id}")
     public Users getUsers(@PathVariable Long id){
         return service.getUser(id);
     }

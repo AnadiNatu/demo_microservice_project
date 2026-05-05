@@ -13,6 +13,7 @@ import com.microservice_demo.demo_service_2.service.interfaces.DemoEntity2Servic
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,28 +85,63 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     }
 
     @Override
+    @Transactional
     public Users createUser(CreateUserDto dto, Long userId) {
 
-        Users user = userRepo.findById(userId).orElse(new Users());
+        Users user = null;
 
-        user.setUserId(userId); // 🔥 FIX: preserve ID
+        if (userId != null) {
+            user = userRepo.findById(userId).orElse(null);
+        }
+
+        if (user == null && dto.getEmail() != null) {
+            user = userRepo.findByEmail(dto.getEmail()).orElse(null);
+        }
+
+        boolean isNew = (user == null);
+        if (isNew) {
+            user = new Users();
+            if (userId != null) {
+                user.setUserId(userId);
+            }
+            user.setDe1ConnectionFlag(false);
+            user.setDe2ConnectionFlag(false);
+        }
+
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        user.setPhone(dto.getPhone());
+        user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
 
         try {
-            user.setRole(UserRoles.valueOf(dto.getUserRole().toUpperCase()));
+            user.setRole(UserRoles.valueOf(
+                    dto.getUserRole() != null ? dto.getUserRole().toUpperCase() : "USER"));
         } catch (Exception ex) {
             user.setRole(UserRoles.USER);
         }
 
-        return userRepo.save(user);
+        Users saved = userRepo.save(user);
+        log.info("[DS2] User {} | id={} email={}", isNew ? "created" : "updated",
+                saved.getUserId(), saved.getEmail());
+        return saved;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Users getUser(Long id) {
         return userRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
     }
+
+    public void updateProfilePicture(Long userId , String profilePicture){
+        Users user = userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
+
+        user.setProfilePicture(profilePicture);
+        userRepo.save(user);
+
+        log.info("✅ [DS1] Profile picture updated | userId={} | url={}", userId,
+                profilePicture != null ? profilePicture : "removed");
+    }
+
+//    Helper Methods
 
     private DemoEntity2Dto safeToDto(DemoEntity2 entity) {
 
@@ -117,35 +153,28 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         dto.setCountField(entity.getCountField());
         dto.setPriceField(entity.getPriceField());
 
-        List<Long> ids = entity.getUserIds();
+       List<Long> ids = entity.getUserIds() != null ? entity.getUserIds() : new ArrayList<>();
         dto.setUserId(ids);
 
-        try {
-            List<UserDto> users = feign.getUsersByIdList(ids);
-            dto.setUserName(users.stream().map(UserDto::getName).toList());
-        } catch (Exception ex) {
-            log.warn("User fetch failed → fallback");
-            dto.setUserName(List.of("Unavailable"));
+        if (ids.isEmpty()) {
+            dto.setUserName(new ArrayList<>());
+        } else {
+            try {
+                List<UserDto> users = feign.getUsersByIdList(ids);
+                dto.setUserName(users.stream().map(UserDto::getName).toList());
+            } catch (Exception ex) {
+                log.warn("[DS2] User fetch failed → fallback");
+                dto.setUserName(new ArrayList<>());
+            }
         }
-
         if (entity.getDemoEn1Id() != null) {
             try {
                 DemoEntity1Dto de1 = feign.getDemoEntity1ForEn2(entity.getDemoEn1Id());
                 dto.setDe1Id(de1.getDemoEn1Id());
             } catch (Exception ex) {
-                log.warn("DemoEntity1 fetch failed");
+                log.warn("[DS2] DemoEntity1 fetch failed");
             }
         }
-
         return dto;
-    }
-    public void updateProfilePicture(Long userId , String profilePicture){
-        Users user = userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
-
-        user.setProfilePicture(profilePicture);
-        userRepo.save(user);
-
-        log.info("✅ [DS1] Profile picture updated | userId={} | url={}", userId,
-                profilePicture != null ? profilePicture : "removed");
     }
 }

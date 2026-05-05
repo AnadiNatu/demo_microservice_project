@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Data
@@ -19,6 +21,7 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name = "ds2_users_seq" , sequenceName = "ds2_users_seq" , allocationSize = 1 , initialValue = 10000)
     private Long userId;
 
     private String name;
@@ -31,7 +34,10 @@ public class Users {
     @Enumerated(EnumType.STRING)
     private UserRoles role;
 
+    @Column(nullable = false , columnDefinition = "boolean default false")
     private boolean de1ConnectionFlag;
+
+    @Column(nullable = false , columnDefinition = "boolean default false")
     private boolean de2ConnectionFlag;
 
     @Column(name = "profile_picture")

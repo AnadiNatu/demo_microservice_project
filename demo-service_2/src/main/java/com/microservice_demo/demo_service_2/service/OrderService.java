@@ -42,33 +42,35 @@ public class OrderService {
 
 //    @CacheEvict(value = "orders" , allEntries = true)
 
+//    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
+//    @Retry(name = "demoService1")
     @Transactional
-    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
-    @Retry(name = "demoService1")
     public OrderDto createOrder(CreatedOrderDto dto){
-
         log.info("Creating order — userId={} products={}", dto.getUserId(), dto.getProductIds());
 
-        // ✅ 1. Validate user exists locally
-        Users user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not synced in demo-service2. userId=" + dto.getUserId()));
+        Users user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new ResourceNotFoundException("User not synced in demo-service2 . userId=" +dto.getUserId()));
 
-        // ✅ 2. Validate input sizes
-        if (dto.getProductIds().size() != dto.getQuantities().size()) {
+        if (dto.getProductIds().size() != dto.getQuantities().size()){
             throw new BadRequestException("productIds and quantities size mismatch");
         }
 
-        // ✅ 3. Safe Feign call
+        return createOrderWithRemoteCalls(dto , user);
+    }
+
+    @CircuitBreaker(name = "demoService1" ,fallbackMethod = "createOrderFallback")
+    @Retry(name = "demoService1")
+    @Transactional
+    public OrderDto createOrderWithRemoteCalls(CreatedOrderDto dto , Users user){
+
+        // Fetch products from DS1
         List<ProductInfoDto> products;
         try {
             products = demoService1Client.getProductsByIds(dto.getProductIds());
         } catch (Exception ex) {
-            log.error("Feign failed: getProductsByIds", ex);
+            log.error("Feign failed: getProductsByIds — {}", ex.getMessage());
             throw new RuntimeException("Product service unavailable. Try again later.");
         }
 
-        // ✅ 4. Strict validation
         if (products == null || products.size() != dto.getProductIds().size()) {
             throw new BadRequestException("Some products not found in demo-service1");
         }
@@ -77,26 +79,21 @@ public class OrderService {
                 .collect(Collectors.toMap(ProductInfoDto::getProductId, p -> p));
 
         BigDecimal total = BigDecimal.ZERO;
-
         for (int i = 0; i < dto.getProductIds().size(); i++) {
             Long pid = dto.getProductIds().get(i);
             Integer qty = dto.getQuantities().get(i);
-
             ProductInfoDto product = productMap.get(pid);
 
             if (product == null) {
                 throw new ResourceNotFoundException("Product not found: " + pid);
             }
-
             if (product.getStockQuantity() == null || product.getStockQuantity() < qty) {
-                throw new BadRequestException(
-                        "Insufficient stock for productId=" + pid);
+                throw new BadRequestException("Insufficient stock for productId=" + pid);
             }
-
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(qty)));
         }
 
-        // ✅ 5. Save Order
+        // Persist the order
         Order order = Order.builder()
                 .orderNumber("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .userId(dto.getUserId())
@@ -110,22 +107,17 @@ public class OrderService {
                 .build();
 
         Order saved = orderRepository.save(order);
+        log.info("Order saved — {}", saved.getOrderNumber());
 
-        log.info("Order saved successfully — {}", saved.getOrderNumber());
-
-        // ✅ 6. Strict stock update (NO silent failure)
+        // Update stock in DS1
         for (int i = 0; i < dto.getProductIds().size(); i++) {
             Long pid = dto.getProductIds().get(i);
             Integer qty = dto.getQuantities().get(i);
-
-            ProductInfoDto product = productMap.get(pid);
-
-            int newStock = product.getStockQuantity() - qty;
-
+            int newStock = productMap.get(pid).getStockQuantity() - qty;
             try {
                 demoService1Client.updateProductStock(pid, newStock);
             } catch (Exception ex) {
-                log.error("Stock update failed → rolling back order", ex);
+                log.error("Stock update failed — rolling back order | pid={}", pid, ex);
                 throw new RuntimeException("Stock update failed. Order rolled back.");
             }
         }
