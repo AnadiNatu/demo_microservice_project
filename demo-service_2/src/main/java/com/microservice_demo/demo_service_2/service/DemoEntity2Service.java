@@ -54,7 +54,7 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         DemoEntity2 entity = repo.findById(dto.getDemoEn2Id())
                 .orElseThrow(() -> new ResourceNotFoundException("DemoEntity2 not found"));
 
-        // ✅ Validate Users locally
+        // ✅Validate Users locally
         List<Long> validUsers = dto.getUserIds().stream()
                 .filter(userRepo::existsById)
                 .toList();
@@ -63,7 +63,7 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
             throw new RuntimeException("No valid users found. Sync required.");
         }
 
-        // ✅ Validate DemoEntity1 remotely
+        // Validate DemoEntity1 remotely
         try {
             feign.getDemoEntity1ForEn2(dto.getDemoEn1Id());
         } catch (Exception ex) {
@@ -87,13 +87,13 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     @Override
     @Transactional
     public Users createUser(CreateUserDto dto, Long userId) {
-
         Users user = null;
 
+        // Prefer lookup by explicit PK (most reliable)
         if (userId != null) {
             user = userRepo.findById(userId).orElse(null);
         }
-
+        // Fallback: lookup by email (covers re-sync scenarios)
         if (user == null && dto.getEmail() != null) {
             user = userRepo.findByEmail(dto.getEmail()).orElse(null);
         }
@@ -102,6 +102,7 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         if (isNew) {
             user = new Users();
             if (userId != null) {
+                // Force-set the PK so JPA inserts with the auth-service ID, not a generated one
                 user.setUserId(userId);
             }
             user.setDe1ConnectionFlag(false);
@@ -112,10 +113,14 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
 
+        // Map role string ("USER" or "ADMIN") → UserRoles enum
         try {
-            user.setRole(UserRoles.valueOf(
-                    dto.getUserRole() != null ? dto.getUserRole().toUpperCase() : "USER"));
+            String roleStr = dto.getUserRole() != null
+                    ? dto.getUserRole().replace("ROLE_", "").toUpperCase()
+                    : "USER";
+            user.setRole(UserRoles.valueOf(roleStr));
         } catch (Exception ex) {
+            log.warn("[DS2] Unknown role '{}', defaulting to USER", dto.getUserRole());
             user.setRole(UserRoles.USER);
         }
 
@@ -131,6 +136,7 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         return userRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
     }
 
+    @Transactional
     public void updateProfilePicture(Long userId , String profilePicture){
         Users user = userRepo.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found exception" + userId));
 

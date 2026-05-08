@@ -55,16 +55,27 @@ public class UserController {
         }
         dto.setUserRole(role);
 
-        // BUG FIX: pass the auth-service ID so the local row uses the same PK
-        Users createdUser = service.createUser(dto, syncDto.getId());
+        // CRITICAL: pass the auth-service ID so the local row is stored with the same PK
+        Users saved = service.createUser(dto, syncDto.getId());
 
+        // Sync profile picture if available
         if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
-            service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
+            service.updateProfilePicture(saved.getUserId(), syncDto.getProfilePicture());
         }
 
-        log.info("[UserController] User synced: {}", createdUser.getEmail());
+        log.info("[DS1 Sync] User upserted | id={} email={}", saved.getUserId(), saved.getEmail());
         return ResponseEntity.ok("User synced successfully to Demo-Service1");
     }
+
+    @PostMapping("/sync/profile-picture")
+    public ResponseEntity<String> syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
+        log.info("[DS1 Sync] Profile-picture sync | userId={}", syncDto.getUserId());
+        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
+        log.info("[DS1 Sync] Profile-picture synced | userId={}", syncDto.getUserId());
+        return ResponseEntity.ok("Profile picture synced successfully");
+    }
+
+//    Local photo upload
 
     @PostMapping("/{id}/uploadLocal")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
@@ -73,16 +84,6 @@ public class UserController {
         String result = service.uploadPhotoToFolder(id, file);
         log.info("[UserController]Photo uploaded: {}", result);
         return ResponseEntity.ok(result);
-    }
-
-    @PostMapping("/sync/profile-picture")
-    public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
-        log.info("[DS1] Received profile picture sync | userId={}", syncDto.getUserId());
-
-        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
-
-        log.info("[DS1] Profile picture synced | userId={}", syncDto.getUserId());
-        return "Profile picture synced successfully";
     }
 
     @GetMapping("/{id}/photoLocal")

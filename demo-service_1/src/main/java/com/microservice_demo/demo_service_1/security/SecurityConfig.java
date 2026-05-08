@@ -107,7 +107,7 @@ public class SecurityConfig {
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        log.info("[DS1 Security] ✅ Security Filter Chain configured successfully");
+        log.info("[DS1 Security] Security Filter Chain configured successfully");
 
         return http.build();
     }

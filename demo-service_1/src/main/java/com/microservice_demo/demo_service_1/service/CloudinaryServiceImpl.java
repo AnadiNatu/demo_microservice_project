@@ -18,27 +18,26 @@ public class CloudinaryServiceImpl {
 
     private final Cloudinary cloudinary;
 
-    private static final String PRODUCT_FOLDER = "multiuser/products";
+    private static final String PRODUCT_FOLDER = "microservice/products";
 
     public String uploadProductImage(MultipartFile file, Long productId) {
         validateImageFile(file);
 
-        String publicId = PRODUCT_FOLDER + "/product_" + productId;
+        String publicId =  PRODUCT_FOLDER + productId + "/product_" + productId;
+
         log.info("[DS1 Cloudinary] Uploading product image | productId={} | filename={} | size={}KB",
                 productId, file.getOriginalFilename(), file.getSize() / 1024);
 
         try {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
-                            "public_id",      publicId,
-                            "overwrite",      true,
-                            "resource_type",  "image",
-                            "folder",         PRODUCT_FOLDER,
+                            "public_id", publicId,
+                            "overwrite", true,
+                            "resource_type", "image",
                             "transformation", new com.cloudinary.Transformation<>()
                                     .width(800).height(800).crop("limit")
                                     .quality("auto").fetchFormat("auto")
                     ));
-
             String url = (String) uploadResult.get("secure_url");
             log.info("[DS1 Cloudinary] Product image uploaded | productId={} | url={}", productId, url);
             return url;
@@ -52,6 +51,7 @@ public class CloudinaryServiceImpl {
     public void deleteImage(String publicId) {
         log.info("[DS1 Cloudinary] Deleting image | publicId={}", publicId);
         try {
+            @SuppressWarnings("rawtypes")
             Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             String status = (String) result.get("result");
             if ("ok".equals(status)) {
@@ -65,7 +65,7 @@ public class CloudinaryServiceImpl {
         }
     }
 
-
+//   Public - ID
     public String extractPublicId(String url) {
         if (url == null || url.isBlank()) return null;
         try {
@@ -80,17 +80,19 @@ public class CloudinaryServiceImpl {
         }
     }
 
+//    Validation
     private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
-        if (file.getSize() > 5 * 1024 * 1024) {
+        if (file.getSize() > 10 * 1024 * 1024) {
             throw new IllegalArgumentException("File size exceeds 5 MB limit");
         }
         String contentType = file.getContentType();
         if (contentType == null
                 || (!contentType.equals("image/jpeg")
                 && !contentType.equals("image/png")
+                && !contentType.equals("image/jpg")
                 && !contentType.equals("image/gif")
                 && !contentType.equals("image/webp"))) {
             throw new IllegalArgumentException(

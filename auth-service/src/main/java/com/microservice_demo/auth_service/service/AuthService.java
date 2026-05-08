@@ -48,7 +48,8 @@ public class AuthService {
             @CacheEvict(value = "userSync" , allEntries = true)
     })
     public AuthResponse register(RegisterRequest request) {
-        log.info("Registration request received for username: {}", request.getUsername());
+        log.info("[AUTH - SERVICE] Registration request received for username: {}", request.getUsername());
+
         if (userRepository.existsByUsername(request.getUsername())) {
             log.error("Registration failed: Username '{}' is already taken", request.getUsername());
             throw new RuntimeException("Error : Username is already taken");
@@ -188,7 +189,7 @@ public class AuthService {
         log.info("Token refresh request received");
         String refreshToken = request.getRefreshToken();
 
-        // Reject invalid / expired tokens immediately
+        // Reject (invalid/expired) tokens immediately
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             log.error("Invalid or expired refresh token provided");
             throw new RuntimeException("Invalid refresh token");
@@ -268,37 +269,34 @@ public class AuthService {
                 .build();
     }
 
-    @CircuitBreaker(name = "microserviceSync" , fallbackMethod = "syncUserFallback")
+    @CircuitBreaker(name = "microserviceSync", fallbackMethod = "syncUserFallback")
     @Retry(name = "microserviceSync")
-    public void syncUserToMicroservices(Users user){
-        log.info("Starting user sync to microservices for: {}", user.getUsername());
-        try{
-            UserSyncDto syncDto = UserSyncDto.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .roles(user.getRoles())
-                    .build();
+    public void syncUserToMicroservices(Users user) {
+        log.info("[SYNC] Syncing user to microservices | id={} username={}", user.getId(), user.getUsername());
 
-            //            Demo - Service 1 Syncing
-            try{
-                log.info("Starting user sync to microservices for: {}", user.getUsername());
-                demoService1Client.syncUser(syncDto);
-                log.info("User synced successfully to Demo-Service1: {}", user.getUsername());
-            }catch (Exception ex){
-                log.error("Failed to sync to Demo-Service1: {} - Error: {}", user.getUsername(), ex.getMessage());
-            }
+        UserSyncDto syncDto = UserSyncDto.builder()
+                .id(user.getId())                   // ← auth-service PK — must be preserved downstream
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .profilePicture(user.getProfilePicture())
+                .build();
 
-//            Demo - Service 2 Syncing
-            try{
-                log.debug("Syncing user to Demo-Service2...");
-                demoService2Client.syncUser(syncDto);
-                log.info("User synced successfully to Demo-Service2: {}", user.getUsername());
-            }catch (Exception ex){
-                System.out.println("Failed to sync to Demo-Service2: " + ex.getMessage());
-            }
-        }catch (Exception ex){
-            log.error("Failed to sync to Demo-Service2: {} - Error: {}", user.getUsername(), ex.getMessage());
+        // Demo-Service-1
+        try {
+            demoService1Client.syncUser(syncDto);
+            log.info("[SYNC] User synced to Demo-Service1 | id={}", user.getId());
+        } catch (Exception ex) {
+            log.error("[SYNC] Demo-Service1 sync failed | id={} | error={}", user.getId(), ex.getMessage());
+        }
+
+        // Demo-Service-2
+        try {
+            demoService2Client.syncUser(syncDto);
+            log.info("[SYNC] User synced to Demo-Service2 | id={}", user.getId());
+        } catch (Exception ex) {
+            log.error("[SYNC] Demo-Service2 sync failed | id={} | error={}", user.getId(), ex.getMessage());
         }
     }
 
@@ -310,22 +308,18 @@ public class AuthService {
     }
 
 //    Profile photo sync to all microservice
-    public void syncProfilePictureUpdate(Long userId , String profilePictureUrl){
-        log.info("Syncing profile picture update for userId: {}", userId);
-
-        try
-        {
-            ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
-                    .userId(userId)
-                    .profilePictureUrl(profilePictureUrl)
-                    .build();
-
-            demoService1Client.syncProfilePicture(syncDto);
-            demoService2Client.syncProfilePicture(syncDto);
-
-            log.info("Profile picture synced successfully for userId: {}", userId);
-        }catch (Exception ex){
-            log.error("Failed to sync profile picture: {}", ex.getMessage());
-        }
+public void syncProfilePictureUpdate(Long userId, String profilePictureUrl) {
+    log.info("[SYNC] Syncing profile-picture | userId={}", userId);
+    try {
+        ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
+                .userId(userId)
+                .profilePictureUrl(profilePictureUrl)
+                .build();
+        demoService1Client.syncProfilePicture(syncDto);
+        demoService2Client.syncProfilePicture(syncDto);
+        log.info("[SYNC] Profile-picture synced | userId={}", userId);
+    } catch (Exception ex) {
+        log.error("[SYNC] Profile-picture sync failed | userId={} | error={}", userId, ex.getMessage());
     }
+}
 }

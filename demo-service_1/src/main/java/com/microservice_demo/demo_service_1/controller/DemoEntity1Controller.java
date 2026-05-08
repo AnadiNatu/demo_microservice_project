@@ -27,6 +27,11 @@ public class DemoEntity1Controller {
 
     private final DemoEntity1ServiceInterface service;
 
+    @GetMapping("/test/public")
+    public ResponseEntity<String> publicTest(){
+        return ResponseEntity.ok("Demo-Service1 is up - public endpoint OK");
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<DemoEntity1Dto> create(@RequestBody CreateDemoEntity1Dto dto) {
@@ -64,6 +69,7 @@ public class DemoEntity1Controller {
         return ResponseEntity.ok(entity);
     }
 
+//  Batch user lookup — used internally by demo-service2 Feign to resolve usernames.
     @PostMapping("/users/list")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<List<UserDto>> getUsersByIdList(@RequestBody List<Long> userIds) {

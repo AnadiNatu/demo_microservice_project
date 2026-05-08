@@ -41,23 +41,37 @@ public class RouteValidator {
             "/oauth2/**",
             "/login/oauth2/**",
 
-//            Demo-Service1 internal sync
+//            Demo-Service1 : internal sync
             "/api/users/sync",
             "/api/users/sync/profile-picture",
 
-//            Demo-Service2 internal sync & public lookup
+//            Demo-service1 : public smoke-test
+            "/api/en1/test/public",
+
+//            Demo-service2 : internal sync
             "/api/en2/sync",
             "/api/en2/sync/profile-picture",
-            "/api/en2/user/**",
 
-//            Smoke-test public endpoint
-            "/api/en1/test/public",
+//            Demo-service2 : public smoke-test
             "/api/en2/test/public",
-            "/api/*/test/public",
 
-//            Feign inter-service calls (demo-services 1&2)
+//            Demo-service2 : Feign inter-service calls
             "/api/orders/product/*/count",
-            "/api/orders/user/*/exist",
+            "/api/orders/user/*/exists",
+
+////            Demo-Service2 internal sync & public lookup
+//            "/api/en2/sync",
+//            "/api/en2/sync/profile-picture",
+//            "/api/en2/user/**",
+//
+////            Smoke-test public endpoint
+//            "/api/en1/test/public",
+//            "/api/en2/test/public",
+//            "/api/*/test/public",
+//
+////            Feign inter-service calls (demo-services 1&2)
+//            "/api/orders/product/*/count",
+//            "/api/orders/user/*/exist",
 
 //            Infra + Health
             "/eureka/**",

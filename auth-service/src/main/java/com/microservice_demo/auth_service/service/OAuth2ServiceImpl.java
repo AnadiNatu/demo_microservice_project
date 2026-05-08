@@ -21,7 +21,8 @@ public class OAuth2ServiceImpl {
     private final UserRepository userRepository;
     private final DemoService1FeignClient demoService1Client;
     private final DemoService2FeignClient demoService2Client;
-    private final AuthService authService;
+//    private final AuthService authService;
+    private final UserSyncService userService;
 
     public Users handleOAuthUser(String email , String name , String provider , String providerId , OAuth2User oAuth2User){
         log.info("[OAUTH2] Handling OAuth user | email={} | provider={}", email, provider);
@@ -117,7 +118,8 @@ public Users handleOAuthUser(String email, String name, String provider, String 
                 email, provider, picture != null ? "yes" : "none");
 
         try {
-            authService.syncUserToMicroservices(savedUser);
+
+            userService.syncUserToMicroservices(savedUser);
         } catch (Exception ex) {
             log.warn("[OAUTH2] Failed to sync user to microservices | error={}", ex.getMessage());
         }
@@ -158,7 +160,7 @@ public Users handleOAuthUser(String email, String name, String provider, String 
         log.info("✅ [OAUTH2] User created successfully: {} with provider: {}", savedUser.getUsername(), provider);
 
         try {
-            authService.syncUserToMicroservices(savedUser);
+            userService.syncUserToMicroservices(savedUser);
         } catch (Exception ex) {
             log.warn("⚠️ [OAUTH2] Failed to sync user to microservices: {}", ex.getMessage());
         }

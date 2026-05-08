@@ -18,7 +18,7 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    private static final String PROFILE_FOLDER = "multiuser/profiles";
+    private static final String PROFILE_FOLDER = "microservice/profiles";
 //    private static final String PRODUCT_FOLDER = "multiuser/products"; // Not needed for this microservice
 //    private static final String DOCUMENT_FOLDER = "multiuser/documents"; // Not needed for this microservice
 
@@ -29,6 +29,7 @@ public class CloudinaryService {
         log.info("[CLOUDINARY] Uploading profile photo | userId={} | filename={} | size={}KB", userId, file.getOriginalFilename(), file.getSize() / 1024);
 
         try{
+            @SuppressWarnings("rawtypes")
             Map uploadResult = cloudinary.uploader().upload(file.getBytes()  ,
                     ObjectUtils.asMap(
                             "public_id" , publicId,
@@ -52,8 +53,9 @@ public class CloudinaryService {
         log.info("[CLOUDINARY] Deleting image | publicId={}", publicId);
 
         try{
+            @SuppressWarnings("rawtypes")
             Map result = cloudinary.uploader().destroy(publicId , ObjectUtils.emptyMap());
-            String resultStatus = (String) result.get("status");
+            String resultStatus = (String) result.get("result");
             if ("ok".equals(resultStatus)){
                 log.info("[CLOUDINARY] Image deleted successfully | publicId={}", publicId);
             }else{
@@ -73,8 +75,8 @@ private void validateImageFile(MultipartFile file) {
         throw new IllegalArgumentException("File is empty");
     }
 
-    if (file.getSize() > 5 * 1024 * 1024) {
-        throw new IllegalArgumentException("File size exceeds 5MB limit");
+    if (file.getSize() > 10 * 1024 * 1024) {
+        throw new IllegalArgumentException("File size exceeds 10MB limit");
     }
     String contentType;
     contentType = file.getContentType();
@@ -84,6 +86,8 @@ private void validateImageFile(MultipartFile file) {
     if (!contentType.equals("image/jpeg") &&
             !contentType.equals("image/png") &&
             !contentType.equals("image/gif") &&
+            !contentType.equals("image/jpeg") &&
+            !contentType.equals("image/jpg") &&
             !contentType.equals("image/webp")) {
         throw new IllegalArgumentException("Unsupported image format. Supported: jpg, png, gif, webp");
     }
@@ -98,17 +102,12 @@ private void validateImageFile(MultipartFile file) {
             String[] parts = url.split("/upload/");
             if (parts.length < 2) return null;
 
-            String afterUpload = parts[1];
+//            Remove optional version prefix
+            String afterUpload = parts[1].replaceFirst("v\\d+/" , "");
 
-//           Remove version
-            String withoutVersion = afterUpload.replaceFirst("v\\d+/" , "");
-//           Remove file extension
-            int lastDot = withoutVersion.lastIndexOf('.');
-
-            if (lastDot > 0){
-                return withoutVersion.substring(0 , lastDot);
-            }
-            return withoutVersion;
+//            Remove file extension
+            int lastDot = afterUpload.lastIndexOf('.');
+            return (lastDot > 0) ? afterUpload.substring(0 , lastDot) : afterUpload;
         }catch (Exception ex){
             log.error("[CLOUDINARY] Failed to extract public ID from URL : {}" , url , ex);
             return null;
