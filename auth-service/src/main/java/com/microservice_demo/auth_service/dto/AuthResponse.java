@@ -10,6 +10,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class AuthResponse {
+    private Long id;
     private String token;
     private String refreshToken;
     private String type = "Bearer";

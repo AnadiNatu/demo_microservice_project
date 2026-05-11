@@ -48,12 +48,19 @@ public class AuthenticationFilter implements GatewayFilter {
 
                 String username = jwtUtil.getUsername(token);
                 List<String> roles = jwtUtil.getRoles(token);
+                Long userId = jwtUtil.getUserId(token);
 
-                ServerHttpRequest modifiedRequest = exchange.getRequest()
+
+                ServerHttpRequest.Builder requestBuilder = exchange.getRequest()
                         .mutate()
                         .header("X-User-Username" , username)
-                        .header("X-User-Roles",String.join("," , roles))
-                        .build();
+                        .header("X-User-Roles",String.join("," , roles));
+
+                if (userId != null){
+                    requestBuilder.header("X-User-Id" , String.valueOf(userId));
+                }
+
+                ServerHttpRequest modifiedRequest = requestBuilder.build();
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } catch (Exception e) {

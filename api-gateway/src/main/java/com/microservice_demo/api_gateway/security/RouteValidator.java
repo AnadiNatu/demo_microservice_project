@@ -34,7 +34,7 @@ public class RouteValidator {
             "/api/email/**",
 
 //            Notification
-            "/api/notification/**",
+            "/api/notifications/**",
 
 //            OAuth2 authorization & callback flows
             "/api/oauth2/**",

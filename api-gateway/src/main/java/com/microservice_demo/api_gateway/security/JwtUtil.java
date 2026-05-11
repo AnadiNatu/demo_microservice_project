@@ -45,6 +45,18 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
+    public Long userId(String token){
+        try{
+            Object id = getClaims(token).get("userId");
+            if (id == null) return null;
+            if (id instanceof Long) return (Long) id;
+            if (id instanceof Integer) return ((Integer) id).longValue();
+            return Long.parseLong(id.toString());
+        }catch (Exception ex){
+            return null;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public List<String> getRoles(String token){
         return (List<String>) getClaims(token).get("roles");

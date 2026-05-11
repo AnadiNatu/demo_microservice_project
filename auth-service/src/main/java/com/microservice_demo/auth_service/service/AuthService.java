@@ -103,6 +103,7 @@ public class AuthService {
 
         log.info("Registration completed successfully for user: {}", userDetails.getUsername());
         return AuthResponse.builder()
+                .id(userDetails.getId())
                 .token(jwt)
                 .refreshToken(refreshToken)
                 .username(userDetails.getUsername())
@@ -138,6 +139,7 @@ public class AuthService {
             String refreshToken = jwtTokenProvider.generateRefreshToken(resolvedUser.getUsername());
 
             return AuthResponse.builder()
+                    .id(resolvedUser.getId())
                     .token(jwt)
                     .refreshToken(refreshToken)
                     .username(resolvedUser.getUsername())
@@ -170,6 +172,7 @@ public class AuthService {
 
             log.info("Login successful for user: {}", users.getUsername());
             return AuthResponse.builder()
+                    .id(users.getId())
                     .token(jwt)
                     .refreshToken(refreshToken)
                     .username(users.getUsername())
@@ -211,6 +214,7 @@ public class AuthService {
 
         log.info("Token refreshed successfully for user: {}", username);
         return AuthResponse.builder()
+                .id(users.getId())
                 .token(newJwt)
                 .refreshToken(newRefreshToken)
                 .username(userDetails.getUsername())

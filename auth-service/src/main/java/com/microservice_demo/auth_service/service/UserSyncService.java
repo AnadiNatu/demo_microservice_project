@@ -18,36 +18,30 @@ public class UserSyncService {
     private final DemoService1FeignClient demoService1Client;
     private final DemoService2FeignClient demoService2Client;
 
+    public void syncUserToMicroservices(Users user) {
+        log.info("[SYNC] Starting user sync | username={}", user.getUsername());
 
-    public void syncUserToMicroservices(Users user){
-        log.info("Starting user sync to microservices for: {}", user.getUsername());
-        try{
-            UserSyncDto syncDto = UserSyncDto.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .roles(user.getRoles())
-                    .build();
+        UserSyncDto syncDto = UserSyncDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .profilePicture(user.getProfilePicture())
+                .build();
 
-            //            Demo - Service 1 Syncing
-            try{
-                log.info("Starting user sync to microservices for: {}", user.getUsername());
-                demoService1Client.syncUser(syncDto);
-                log.info("User synced successfully to Demo-Service1: {}", user.getUsername());
-            }catch (Exception ex){
-                log.error("Failed to sync to Demo-Service1: {} - Error: {}", user.getUsername(), ex.getMessage());
-            }
+        try {
+            demoService1Client.syncUser(syncDto);
+            log.info("[SYNC] User synced to Demo-Service1 | username={}", user.getUsername());
+        } catch (Exception ex) {
+            log.error("[SYNC] Demo-Service1 sync failed | username={} | error={}", user.getUsername(), ex.getMessage());
+        }
 
-            //            Demo - Service 2 Syncing
-            try{
-                log.debug("Syncing user to Demo-Service2...");
-                demoService2Client.syncUser(syncDto);
-                log.info("User synced successfully to Demo-Service2: {}", user.getUsername());
-            }catch (Exception ex){
-                System.out.println("Failed to sync to Demo-Service2: " + ex.getMessage());
-            }
-        }catch (Exception ex){
-            log.error("Failed to sync to Demo-Service2: {} - Error: {}", user.getUsername(), ex.getMessage());
+        try {
+            demoService2Client.syncUser(syncDto);
+            log.info("[SYNC] User synced to Demo-Service2 | username={}", user.getUsername());
+        } catch (Exception ex) {
+            log.error("[SYNC] Demo-Service2 sync failed | username={} | error={}", user.getUsername(), ex.getMessage());
         }
     }
 }

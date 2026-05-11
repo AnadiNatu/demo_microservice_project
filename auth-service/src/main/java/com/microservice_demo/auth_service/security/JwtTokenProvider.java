@@ -92,6 +92,26 @@ public class JwtTokenProvider {
                 .getSubject();
     }
 
+    public Long getUserIdFromToken(String token){
+        try{
+            Object id = getClaims(token).get("userId");
+            if (id == null) return null;
+            if (id instanceof Long) return (Long) id;
+            if (id instanceof Integer) return ((Integer) id).longValue();
+            return Long.parseLong(id.toString());
+        }catch (Exception ex){
+            return null;
+        }
+    }
+
+    private Claims getClaims(String token){
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
     @SuppressWarnings("unchecked")
     public Set<String> getRolesFromToken(String token) {
         Claims claims = Jwts.parser()
