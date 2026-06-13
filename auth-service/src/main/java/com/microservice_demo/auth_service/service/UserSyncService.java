@@ -1,6 +1,7 @@
 package com.microservice_demo.auth_service.service;
 
 
+import com.microservice_demo.auth_service.dto.ProfilePictureSyncDto;
 import com.microservice_demo.auth_service.dto.UserSyncDto;
 import com.microservice_demo.auth_service.entity.Users;
 import com.microservice_demo.auth_service.feign.DemoService1FeignClient;
@@ -42,6 +43,25 @@ public class UserSyncService {
             log.info("[SYNC] User synced to Demo-Service2 | username={}", user.getUsername());
         } catch (Exception ex) {
             log.error("[SYNC] Demo-Service2 sync failed | username={} | error={}", user.getUsername(), ex.getMessage());
+        }
+    }
+
+    public void syncProfilePictureUpdate(Long userId , String profilePictureUrl){
+        log.info("[SYNC] Syncing profile-picture | userId={}" , userId);
+        try{
+            ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
+                    .userId(userId)
+                    .profilePictureUrl(profilePictureUrl)
+                    .build();
+
+            demoService1Client.syncProfilePicture(syncDto);
+            demoService2Client.syncProfilePicture(syncDto);
+            log.info("[SYNC] Profile-picture synced successfully | userId={}", userId);
+
+        } catch (Exception ex) {
+
+            log.error("[SYNC] Profile-picture sync failed | userId={} | error={}",
+                    userId, ex.getMessage());
         }
     }
 }

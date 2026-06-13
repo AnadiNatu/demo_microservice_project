@@ -29,7 +29,7 @@ public class OrderController {
     // USER + ADMIN endpoints
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto) {
         log.info("[USER|ADMIN] Create order — userId={} products={}",
                 dto.getUserId(), dto.getProductIds());
@@ -37,14 +37,14 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> getOrder(@PathVariable Long orderId) {
         log.info("Get order — id={}", orderId);
         return ResponseEntity.ok(orderService.getOrder(orderId));
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByUserId(
             @PathVariable                      Long userId,
             @RequestParam(defaultValue = "0")  int  page,
@@ -54,7 +54,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}/date-range")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByDateRange(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -67,7 +67,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/cancel")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
         log.info("Cancel order — id={}", orderId);
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
@@ -75,7 +75,7 @@ public class OrderController {
 
 //    ADMIN - only endpoint
 @GetMapping("/status/{status}")
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@PreAuthorize("hasAuthority('ADMIN')")
 public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
         @PathVariable                      String status,
         @RequestParam(defaultValue = "0")  int    page,
@@ -85,7 +85,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
 }
 
     @PutMapping("/{orderId}/status")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<OrderDto> updateOrderStatus(
             @PathVariable Long   orderId,
             @RequestParam String status) {
@@ -94,7 +94,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Map<String, Object>> getOrderStatistics() {
         log.info("[ADMIN] Get order statistics");
         return ResponseEntity.ok(orderService.getOrderStatistics());

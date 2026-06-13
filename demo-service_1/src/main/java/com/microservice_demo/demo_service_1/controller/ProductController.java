@@ -29,7 +29,7 @@ public class ProductController {
     // ========== ADMIN-ONLY ENDPOINTS ==========
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductDto dto) {
         log.info("[ProductController] [ADMIN] Creating product: {}", dto.getProductName());
         ProductDto created = productService.createProduct(dto);
@@ -38,7 +38,7 @@ public class ProductController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<ProductDto>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -50,7 +50,7 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}/deactivate")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDto> deactivateProduct(@PathVariable Long productId) {
         log.info("[ProductController] [ADMIN] Deactivating product ID: {}", productId);
         ProductDto deactivated = productService.deactivateProduct(productId);
@@ -60,7 +60,7 @@ public class ProductController {
 
 
     @PostMapping("/{productId}/image")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDto> uploadProductImage(
             @PathVariable Long productId,
             @RequestParam("file") MultipartFile file) {
@@ -72,7 +72,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{productId}/image")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDto> removeProductImage(@PathVariable Long productId) {
         log.info("[ProductController] [ADMIN] Remove image for productId={}", productId);
         ProductDto updated = productService.removeProductImage(productId);
@@ -82,7 +82,7 @@ public class ProductController {
 
     // ========== USER + ADMIN ENDPOINTS ==========
     @GetMapping("/{productId}")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long productId) {
         log.info("[ProductController] Get product ID: {}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -91,7 +91,7 @@ public class ProductController {
     }
 
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<ProductDto>> getActiveProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -102,7 +102,7 @@ public class ProductController {
     }
 
     @GetMapping("/category/{category}")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<ProductDto>> getProductsByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
@@ -114,7 +114,7 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<ProductDto>> searchProducts(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -126,7 +126,7 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}/stock")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ProductDto> updateStock(
             @PathVariable Long productId,
             @RequestParam Integer quantity) {
@@ -137,7 +137,7 @@ public class ProductController {
     }
 
     @PostMapping("/list")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
         log.info("[ProductController] Batch fetch products - IDs: {}", productIds);
         List<ProductDto> products = productService.getProductsByIds(productIds);
@@ -146,7 +146,7 @@ public class ProductController {
     }
 
     @GetMapping("/{productId}/available")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Boolean> isProductAvailable(@PathVariable Long productId) {
         log.info("[ProductController] Check availability - productId={}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -158,7 +158,7 @@ public class ProductController {
     }
 
     @GetMapping("/{productId}/order-stats")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getProductOrderStats(@PathVariable Long productId) {
         log.info("[ProductController] Get order stats — productId={}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -171,7 +171,7 @@ public class ProductController {
     }
 
     @PostMapping("/order-stats/batch")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getBatchProductOrderStats(
             @RequestBody List<Long> productIds) {
         log.info("[ProductController] Batch order stats — productIds={}", productIds);

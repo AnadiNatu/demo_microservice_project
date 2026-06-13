@@ -2,6 +2,7 @@ package com.microservice_demo.auth_service.security;
 
 import com.microservice_demo.auth_service.security.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,9 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("http://localhost:5173")
+    private String frontendUrl;
 
     @Bean
     public PasswordEncoder passwordEncoder(){
@@ -65,8 +69,10 @@ public class SecurityConfig {
                 )
 
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint.baseUri("/oauth/authorization"))
+                        .redirectionEndpoint(endpoint -> endpoint.baseUri("/login/oauth2/code"))
                         .successHandler(oAuth2SuccessHandler)
-                        .failureUrl("/api/oauth2/failure")
+                        .failureUrl(frontendUrl + "/oauth2/callback?error=oauth2_failed")
                 )
 
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

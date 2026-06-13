@@ -1,19 +1,41 @@
 # ================= BUILD =================
 target/
 build/
+out/
+*.class
+
+# ================= LOGS =================
 *.log
 logs/
 *.out
+*.err
+*.gz
 
-# ================= MAVEN =================
-.mvn/wrapper/maven-wrapper.jar
+# ================= ENV =================
+# ================= DOCKER SECRETS =================
+.env
+.env.*
+!.env.example
+
+# ================= SPRING CONFIG (CRITICAL) =================
+**/application.properties
+**/application.yml
+**/application-*.properties
+**/application-*.yml
+
+# ================= SECURITY =================
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
 
 # ================= IDE =================
 .idea/
-*.iws
+.vscode/
 *.iml
 *.ipr
-.vscode/
+*.iws
 
 # ================= STS =================
 .apt_generated
@@ -25,7 +47,7 @@ logs/
 .sts4-cache
 
 # ================= NETBEANS =================
-/nbproject/private/
+/nbproject/
 /nbbuild/
 /dist/
 /nbdist/
@@ -35,23 +57,17 @@ logs/
 .DS_Store
 Thumbs.db
 
-# ================= ENV / SECRETS =================
-.env
-.env.*
-*.env
+# ================= TEST =================
+coverage/
+reports/
 
-# ================= APPLICATION CONFIG (VERY IMPORTANT) =================
-src/main/resources/application.properties
-src/main/resources/application.yml
-src/main/resources/application-*.properties
-src/main/resources/application-*.yml
+# ================= NODE =================
+node_modules/
 
-# ================= LOGS =================
-*.log
-logs/
-*.gz
+# ================= TEMP =================
+*.tmp
+*.swp
+*.bak
 
-# ================= SECURITY =================
-*.pem
-*.key
-*.crt
+# ================= KEEP EXAMPLE =================
+# !.env.example

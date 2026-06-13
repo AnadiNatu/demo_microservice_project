@@ -39,8 +39,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final NotificationService notificationService;
-    private final DemoService1FeignClient demoService1Client;
-    private final DemoService2FeignClient demoService2Client;
+    private final UserSyncService userSyncService;
 
     @Transactional
     @Caching(evict = {
@@ -289,7 +288,7 @@ public class AuthService {
 
         // Demo-Service-1
         try {
-            demoService1Client.syncUser(syncDto);
+            userSyncService.syncUserToMicroservices(user);
             log.info("[SYNC] User synced to Demo-Service1 | id={}", user.getId());
         } catch (Exception ex) {
             log.error("[SYNC] Demo-Service1 sync failed | id={} | error={}", user.getId(), ex.getMessage());
@@ -297,7 +296,7 @@ public class AuthService {
 
         // Demo-Service-2
         try {
-            demoService2Client.syncUser(syncDto);
+            userSyncService.syncUserToMicroservices(user);
             log.info("[SYNC] User synced to Demo-Service2 | id={}", user.getId());
         } catch (Exception ex) {
             log.error("[SYNC] Demo-Service2 sync failed | id={} | error={}", user.getId(), ex.getMessage());
@@ -319,8 +318,7 @@ public void syncProfilePictureUpdate(Long userId, String profilePictureUrl) {
                 .userId(userId)
                 .profilePictureUrl(profilePictureUrl)
                 .build();
-        demoService1Client.syncProfilePicture(syncDto);
-        demoService2Client.syncProfilePicture(syncDto);
+        userSyncService.syncProfilePictureUpdate(userId , profilePictureUrl);
         log.info("[SYNC] Profile-picture synced | userId={}", userId);
     } catch (Exception ex) {
         log.error("[SYNC] Profile-picture sync failed | userId={} | error={}", userId, ex.getMessage());

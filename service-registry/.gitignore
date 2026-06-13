@@ -1,10 +1,43 @@
-HELP.md
+# ================= BUILD =================
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+build/
+out/
+*.class
 
-### STS ###
+# ================= LOGS =================
+*.log
+logs/
+*.out
+*.err
+*.gz
+
+# ================= ENV =================
+# ================= DOCKER SECRETS =================
+.env
+.env.*
+!.env.example
+
+# ================= SPRING CONFIG (CRITICAL) =================
+**/application.properties
+**/application.yml
+**/application-*.properties
+**/application-*.yml
+
+# ================= SECURITY =================
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# ================= IDE =================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ================= STS =================
 .apt_generated
 .classpath
 .factorypath
@@ -13,21 +46,28 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
+# ================= NETBEANS =================
+/nbproject/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# ================= OS =================
+.DS_Store
+Thumbs.db
+
+# ================= TEST =================
+coverage/
+reports/
+
+# ================= NODE =================
+node_modules/
+
+# ================= TEMP =================
+*.tmp
+*.swp
+*.bak
+
+# ================= KEEP EXAMPLE =================
+# !.env.example

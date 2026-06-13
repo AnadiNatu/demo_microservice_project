@@ -20,34 +20,34 @@ public class DemoEntity2Controller {
     private final DemoEntity2Service service;
 
 //    Public smoke-test
-    @GetMapping("/test/public")
+    @GetMapping("/test/service2")
     public ResponseEntity<String> publicTest() {
         return ResponseEntity.ok("Demo-Service2 is up — public endpoint OK");
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<DemoEntity2Dto> create(@RequestBody CreateDemoEntity2Dto dto) {
         log.info("[DS2 En2] Create");
         return ResponseEntity.ok(service.create(dto));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<DemoEntity2Dto> get(@PathVariable Long id) {
         log.info("[DS2 En2] Fetch | id={}", id);
         return ResponseEntity.ok(service.get(id));
     }
 
     @PostMapping("/addAll")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DemoEntity2Dto> addUsersAndDemoEntity1(@RequestBody AddUserListAndDE1ToDE2Dto dto) {
         log.info("[DS2 En2] addAll | de2Id={}", dto.getDemoEn2Id());
         return ResponseEntity.ok(service.addUsersAndDemoEntity1(dto));
     }
 
     @PostMapping("/addUser")
-    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<DemoEntity2Dto> addUser(@RequestBody AddUserToListDE1ForDE2Dto dto) {
         return ResponseEntity.ok(service.addUserToDemoEntity2(dto));
     }

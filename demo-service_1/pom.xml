@@ -143,6 +143,7 @@
     </dependencies>
 
     <build>
+        <finalName>demo-service1</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
