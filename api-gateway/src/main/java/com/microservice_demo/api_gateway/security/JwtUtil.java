@@ -45,7 +45,7 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
-    public Long userId(String token){
+    public Long getUserId(String token){
         try{
             Object id = getClaims(token).get("userId");
             if (id == null) return null;
