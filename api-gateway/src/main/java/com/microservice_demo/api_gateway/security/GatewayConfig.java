@@ -84,6 +84,10 @@ public class GatewayConfig {
                         .filters(f -> f.filter(filter))
                         .uri("lb://demo-service1"))
 
+                .route("ds2-product-image" , r -> r.path("/api/products/*/images/**")
+                        .filters(f -> f.filter(filter))
+                        .uri("lb://demo-service1"))
+
                 //  DEMO-SERVICE-2 — PUBLIC (sync + user-lookup + smoke-test + Feign)
                 .route("ds2-en2-sync-public", r -> r.path("/api/en2/sync")
                         .uri("lb://demo-service2"))

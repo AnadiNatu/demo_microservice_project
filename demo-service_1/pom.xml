@@ -134,6 +134,14 @@
         <dependency><groupId>com.cloudinary</groupId><artifactId>cloudinary-http44</artifactId><version>1.36.0</version></dependency>
 
 
+        <!-- For multipart file handling -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.13.0</version>
+        </dependency>
+
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
