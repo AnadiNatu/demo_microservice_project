@@ -241,7 +241,7 @@ public class ProductService {
         try {
             if (product.getCreatedBy() != null) {
                 createdByUserId = product.getCreatedBy().getUserId();
-                createdByUsername = product.getCreatedBy().getName();
+                createdByUsername = product.getCreatedBy().getUsername();
             }
         } catch (Exception ex) {
             // Lazy proxy not initialised — leave fields null rather than crashing

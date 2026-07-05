@@ -8,6 +8,7 @@ import com.microservice_demo.auth_service.notifcation.NotificationService;
 import com.microservice_demo.auth_service.repository.UserRepository;
 import com.microservice_demo.auth_service.security.JwtTokenProvider;
 import com.microservice_demo.auth_service.security.UserDetailsServiceImpl;
+import feign.Logger;
 import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -85,13 +87,12 @@ public class AuthService {
         Users savedUser = userRepository.save(user);
         log.info("User created successfully : {} with roles : {}" ,savedUser.getUsername() , roles);
 
-        syncUserToMicroservices(user);
+        syncUserToMicroservices(savedUser);
 
 //        Auto-login after registration
         log.debug("Performing auto-login for user: {}", request.getUsername());
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -276,31 +277,31 @@ public class AuthService {
     @Retry(name = "microserviceSync")
     public void syncUserToMicroservices(Users user) {
         log.info("[SYNC] Syncing user to microservices | id={} username={}", user.getId(), user.getUsername());
-
-        UserSyncDto syncDto = UserSyncDto.builder()
-                .id(user.getId())                   // ← auth-service PK — must be preserved downstream
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .roles(user.getRoles())
-                .profilePicture(user.getProfilePicture())
-                .build();
-
-        // Demo-Service-1
-        try {
-            userSyncService.syncUserToMicroservices(user);
-            log.info("[SYNC] User synced to Demo-Service1 | id={}", user.getId());
-        } catch (Exception ex) {
-            log.error("[SYNC] Demo-Service1 sync failed | id={} | error={}", user.getId(), ex.getMessage());
-        }
-
-        // Demo-Service-2
-        try {
-            userSyncService.syncUserToMicroservices(user);
-            log.info("[SYNC] User synced to Demo-Service2 | id={}", user.getId());
-        } catch (Exception ex) {
-            log.error("[SYNC] Demo-Service2 sync failed | id={} | error={}", user.getId(), ex.getMessage());
-        }
+        userSyncService.syncToMicroservices(user);
+//        UserSyncDto syncDto = UserSyncDto.builder()
+//                .id(user.getId())                   // ← auth-service PK — must be preserved downstream
+//                .username(user.getUsername())
+//                .email(user.getEmail())
+//                .phoneNumber(user.getPhoneNumber())
+//                .roles(user.getRoles())
+//                .profilePicture(user.getProfilePicture())
+//                .build();
+//
+//        // Demo-Service-1
+//        try {
+//            userSyncService.syncUserToMicroservices(user);
+//            log.info("[SYNC] User synced to Demo-Service1 | id={}", user.getId());
+//        } catch (Exception ex) {
+//            log.error("[SYNC] Demo-Service1 sync failed | id={} | error={}", user.getId(), ex.getMessage());
+//        }
+//
+//        // Demo-Service-2
+//        try {
+//            userSyncService.syncUserToMicroservices(user);
+//            log.info("[SYNC] User synced to Demo-Service2 | id={}", user.getId());
+//        } catch (Exception ex) {
+//            log.error("[SYNC] Demo-Service2 sync failed | id={} | error={}", user.getId(), ex.getMessage());
+//        }
     }
 
     @SuppressWarnings("unused")
@@ -314,10 +315,11 @@ public class AuthService {
 public void syncProfilePictureUpdate(Long userId, String profilePictureUrl) {
     log.info("[SYNC] Syncing profile-picture | userId={}", userId);
     try {
-        ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
-                .userId(userId)
-                .profilePictureUrl(profilePictureUrl)
-                .build();
+//        ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
+//                .userId(userId)
+//                .profilePictureUrl(profilePictureUrl)
+//                .build();
+
         userSyncService.syncProfilePictureUpdate(userId , profilePictureUrl);
         log.info("[SYNC] Profile-picture synced | userId={}", userId);
     } catch (Exception ex) {

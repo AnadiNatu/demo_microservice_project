@@ -49,7 +49,7 @@ public class UserService implements UserServiceInterface {
             user.setUserId(authServiceId);
         }
 
-        user.setName(dto.getName());
+        user.setUsername(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
 

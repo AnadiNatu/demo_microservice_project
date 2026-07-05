@@ -24,7 +24,7 @@ public class Users implements UserDetails {
     @SequenceGenerator(name = "ds1_users_seq" , sequenceName = "ds1_users_seq" , allocationSize = 1 , initialValue = 10000)
     private Long userId;
 
-    private String name;
+    private String username;
 
     @Column(unique = true, nullable = false)
     private String email;

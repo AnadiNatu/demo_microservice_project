@@ -52,32 +52,53 @@ public class DemoEntity2Controller {
         return ResponseEntity.ok(service.addUserToDemoEntity2(dto));
     }
 
+//    @PostMapping("/sync")
+//    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto){
+//        log.info("[DS2] Received user sync | email={} id={}", syncDto.getEmail(), syncDto.getId());
+//
+//        CreateUserDto dto = new CreateUserDto();
+//        dto.setName(syncDto.getUsername());
+//        dto.setEmail(syncDto.getEmail());
+//        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
+//
+//        String role = "USER";
+//        if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
+//            String raw = syncDto.getRoles().iterator().next();
+//            role = raw.replace("ROLE_", "").toUpperCase();
+//        }
+//        dto.setUserRole(role);
+//
+//        // BUG FIX: pass auth-service ID so row uses the same PK
+//        Users createdUser = service.createUser(dto, syncDto.getId());
+//
+//        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
+//            service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
+//        }
+//
+//        log.info("[DS2] User synced | email={}", createdUser.getEmail());
+//        return ResponseEntity.ok("User synced successfully to Demo-Service2");
+//    }
+
     @PostMapping("/sync")
-    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto){
-        log.info("[DS2] Received user sync | email={} id={}", syncDto.getEmail(), syncDto.getId());
+    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto dto) {
 
-        CreateUserDto dto = new CreateUserDto();
-        dto.setName(syncDto.getUsername());
-        dto.setEmail(syncDto.getEmail());
-        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
+        log.info("######## DS2 SYNC ENDPOINT HIT ########");
+        service.syncUser(dto);
 
-        String role = "USER";
-        if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
-            String raw = syncDto.getRoles().iterator().next();
-            role = raw.replace("ROLE_", "").toUpperCase();
-        }
-        dto.setUserRole(role);
-
-        // BUG FIX: pass auth-service ID so row uses the same PK
-        Users createdUser = service.createUser(dto, syncDto.getId());
-
-        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
-            service.updateProfilePicture(createdUser.getUserId(), syncDto.getProfilePicture());
-        }
-
-        log.info("[DS2] User synced | email={}", createdUser.getEmail());
-        return ResponseEntity.ok("User synced successfully to Demo-Service2");
+        return ResponseEntity.ok("User synchronized successfully.");
     }
+
+    @PostMapping("/sync/profile-picture")
+    public ResponseEntity<String> syncProfilePicture(
+            @RequestBody ProfilePictureSyncDto dto) {
+
+        service.updateProfilePicture(
+                dto.getUserId(),
+                dto.getProfilePictureUrl());
+
+        return ResponseEntity.ok("Profile picture synchronized.");
+    }
+
 
 //    @PreAuthorize("hasAnyRole('USER' , 'ADMIN')")
     @GetMapping("/user/{id}")
@@ -85,13 +106,13 @@ public class DemoEntity2Controller {
         return service.getUser(id);
     }
 
-    @PostMapping("/sync/profile-picture")
-    public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
-        log.info("[DS2] Received profile picture sync | userId={}", syncDto.getUserId());
-
-        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
-
-        log.info("[DS2] Profile picture synced | userId={}", syncDto.getUserId());
-        return "Profile picture synced successfully";
-    }
+//    @PostMapping("/sync/profile-picture")
+//    public String syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {
+//        log.info("[DS2] Received profile picture sync | userId={}", syncDto.getUserId());
+//
+//        service.updateProfilePicture(syncDto.getUserId(), syncDto.getProfilePictureUrl());
+//
+//        log.info("[DS2] Profile picture synced | userId={}", syncDto.getUserId());
+//        return "Profile picture synced successfully";
+//    }
 }

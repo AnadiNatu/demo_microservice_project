@@ -47,6 +47,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/en2/sync/profile-picture").permitAll()
                         .requestMatchers("/api/en2/user/**").permitAll()
                         .requestMatchers("/api/en2/test/public").permitAll()
+
+                        .requestMatchers("/api/en2/test/service2").permitAll()
+
                         .requestMatchers("/api/orders/product/*/count").permitAll()
                         .requestMatchers("/api/orders/user/*/exists").permitAll()
                         .anyRequest().authenticated())

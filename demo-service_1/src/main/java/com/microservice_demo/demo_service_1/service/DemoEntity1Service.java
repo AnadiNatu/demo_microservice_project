@@ -81,7 +81,7 @@ public class DemoEntity1Service implements DemoEntity1ServiceInterface {
         for (Users u : users) {
             UserDto dto = new UserDto();
             dto.setUserId(u.getUserId());
-            dto.setName(u.getName());
+            dto.setName(u.getUsername());
             dto.setEmail(u.getEmail());
             dto.setPhone(u.getPhone());
 

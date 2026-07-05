@@ -183,4 +183,55 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
         }
         return dto;
     }
+
+    @Transactional
+    public void syncUser(UserSyncDto dto) {
+
+        Users user = userRepo.findById(dto.getId())
+                .orElseGet(() ->
+                        userRepo.findByEmail(dto.getEmail())
+                                .orElse(new Users())
+                );
+
+        if (user.getUserId() == null) {
+            user.setUserId(dto.getId());
+        }
+
+        user.setName(dto.getUsername());
+
+        user.setEmail(dto.getEmail());
+
+        user.setPhone(dto.getPhoneNumber());
+
+        user.setProfilePicture(dto.getProfilePicture());
+
+        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+
+            String role = dto.getRoles()
+                    .iterator()
+                    .next()
+                    .replace("ROLE_", "")
+                    .toUpperCase();
+
+            try {
+
+                user.setRole(UserRoles.valueOf(role));
+
+            } catch (Exception ex) {
+
+                log.warn("Unknown role {}, defaulting USER", role);
+
+                user.setRole(UserRoles.USER);
+
+            }
+
+        }
+
+        userRepo.save(user);
+
+        log.info(
+                "[DS2] User synchronized | id={} email={}",
+                user.getUserId(),
+                user.getEmail());
+    }
 }

@@ -14,14 +14,9 @@ import java.util.Map;
 @RequestMapping("/api/products/{productId}/images")
 public class ProductImageController {
 
-
     @Autowired
     private ProductImageService productImageService;
 
-    /**
-     * POST /api/products/{productId}/images/upload
-     * Upload a new image for a product.
-     */
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(
             @PathVariable Long productId,
@@ -46,11 +41,6 @@ public class ProductImageController {
         }
     }
 
-    /**
-     * PUT /api/products/{productId}/images/update
-     * Replace an existing product image.
-     * Pass old image URL as query param: ?oldImageUrl=https://...
-     */
     @PutMapping("/update")
     public ResponseEntity<Map<String, String>> updateImage(
             @PathVariable Long productId,
@@ -76,11 +66,6 @@ public class ProductImageController {
         }
     }
 
-    /**
-     * DELETE /api/products/{productId}/images/delete
-     * Delete a product image by its URL.
-     * Pass image URL as query param: ?imageUrl=https://...
-     */
     @DeleteMapping("/delete")
     public ResponseEntity<Map<String, String>> deleteImage(
             @PathVariable Long productId,
@@ -96,15 +81,10 @@ public class ProductImageController {
         }
     }
 
-    /**
-     * GET /api/products/{productId}/images/list
-     * List all images for a product (filtered by productId prefix).
-     */
     @GetMapping("/list")
     public ResponseEntity<String> listImages(@PathVariable Long productId) {
         String prefix = "product-" + productId + "-";
         String result = productImageService.listProductImages(prefix);
         return ResponseEntity.ok(result);
     }
-
 }

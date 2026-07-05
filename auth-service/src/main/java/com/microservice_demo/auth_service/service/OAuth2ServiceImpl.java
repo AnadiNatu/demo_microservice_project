@@ -83,7 +83,7 @@ public class OAuth2ServiceImpl {
                 email, provider, picture != null ? "yes" : "none");
 
         try {
-            userSyncService.syncUserToMicroservices(savedUser);
+            userSyncService.syncToMicroservices(savedUser);
         } catch (Exception ex) {
             log.warn("[OAUTH2] Failed to sync user to microservices | error={}", ex.getMessage());
         }

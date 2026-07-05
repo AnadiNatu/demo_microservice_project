@@ -143,5 +143,4 @@ private HttpHeaders buildHeaders(String contentType) {
         if (index == -1) return null;
         return imageUrl.substring(index + marker.length());
     }
-
 }
