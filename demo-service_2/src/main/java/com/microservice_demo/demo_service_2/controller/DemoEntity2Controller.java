@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/en2")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class DemoEntity2Controller {
 
     private final DemoEntity2Service service;
@@ -26,21 +25,21 @@ public class DemoEntity2Controller {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<DemoEntity2Dto> create(@RequestBody CreateDemoEntity2Dto dto) {
         log.info("[DS2 En2] Create");
         return ResponseEntity.ok(service.create(dto));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<DemoEntity2Dto> get(@PathVariable Long id) {
         log.info("[DS2 En2] Fetch | id={}", id);
         return ResponseEntity.ok(service.get(id));
     }
 
     @PostMapping("/addAll")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<DemoEntity2Dto> addUsersAndDemoEntity1(@RequestBody AddUserListAndDE1ToDE2Dto dto) {
         log.info("[DS2 En2] addAll | de2Id={}", dto.getDemoEn2Id());
         return ResponseEntity.ok(service.addUsersAndDemoEntity1(dto));

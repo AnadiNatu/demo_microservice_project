@@ -41,4 +41,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = :status")
     long countByOrderStatus(@Param("status") OrderStatus status);
+
+
+    long countByCreatedOnBetween(LocalDateTime start, LocalDateTime end);
+
+    List<Order> findByCreatedOnBetween(LocalDateTime start, LocalDateTime end);
+
+    List<Order> findByOrderStatus(OrderStatus status);
+
+    List<Order> findByEstimatedDeliveryBeforeAndOrderStatus(LocalDateTime date, OrderStatus status);
+
+    List<Order> findByDeliveryDateBetween(LocalDateTime start, LocalDateTime end);
 }

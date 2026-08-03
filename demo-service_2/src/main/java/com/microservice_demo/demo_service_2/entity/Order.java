@@ -14,7 +14,9 @@ import java.util.List;
 @Entity
 @Table(name = "orders" , indexes = {
         @Index(name = "idx_order_number" , columnList = "orderNumber"),
-        @Index(name = "idx_order_status" , columnList = "createdOn")
+        @Index(name = "idx_order_status" , columnList = "orderStatus"),
+        @Index(name = "idx_order_user", columnList = "userId"),
+        @Index(name = "idx_order_created", columnList = "createdOn")
 })
 @Getter
 @Setter
@@ -37,8 +39,8 @@ public class Order {
     @Column(nullable = false, unique = true, length = 50)
     private String orderNumber;
 
-    @Column(length = 500)
-    private String shippingAddress;
+//    @Column(length = 500)
+//    private String shippingAddress;
 
     @Column(length = 1000)
     private String notes;
@@ -46,45 +48,93 @@ public class Order {
     @Column(nullable = false)
     private Long userId;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "order_product_items",
-            joinColumns = @JoinColumn(name = "order_id")
-    )
-    @Column(name = "product_id")
-    private List<Long> productIds = new ArrayList<>();
+//    @ElementCollection
+//    @CollectionTable(
+//            name = "order_product_items",
+//            joinColumns = @JoinColumn(name = "order_id")
+//    )
+//    @Column(name = "product_id")
+//    private List<Long> productIds = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "order_product_quantities" , joinColumns = @JoinColumn(name = "order_id"))
-    @MapKeyColumn(name = "product_id")
-    @Column(name = "quantity")
-    private List<Integer> quantities = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "order",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<OrderItem> items = new ArrayList<>();
+
+    @Column(length = 100)
+    private String shippingName;
+
+    @Column(length = 20)
+    private String shippingPhone;
+
+    @Column(length = 150)
+    private String shippingEmail;
+
+    @Column(length = 500)
+    private String shippingAddress;
+
+    @Column(length = 100)
+    private String shippingCity;
+
+    @Column(length = 100)
+    private String shippingState;
+
+    @Column(length = 100)
+    private String shippingCountry;
+
+    @Column(length = 20)
+    private String postalCode;
+
+//    @Column(length = 1000)
+//    private String notes;
+
+    private LocalDateTime orderDate;
+
+    private LocalDateTime shippedDate;
+
+    private LocalDateTime estimatedDelivery;
+
+    private LocalDateTime deliveryDate;
+
+    private LocalDateTime cancelledDate;
 
     private LocalDateTime createdOn;
 
     private LocalDateTime updatedOn;
 
-    private LocalDateTime deliveryDate;
-
-    private LocalDateTime orderDate;
-
     @PrePersist
-    protected void onCreate(){
+    protected void onCreate() {
         createdOn = LocalDateTime.now();
         updatedOn = LocalDateTime.now();
-        if(orderNumber == null){
+
+        if (orderDate == null) {
+            orderDate = LocalDateTime.now();
+        }
+
+        if (orderNumber == null) {
             orderNumber = generateOrderNumber();
         }
     }
 
     @PreUpdate
-    protected void onUpdate(){
+    protected void onUpdate() {
         updatedOn = LocalDateTime.now();
     }
 
-    private String generateOrderNumber(){
-        return "ORD-" + System.currentTimeMillis();
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
     }
 
+    public void removeItem(OrderItem item) {
+        items.remove(item);
+        item.setOrder(null);
+    }
 
+    private String generateOrderNumber() {
+        return "ORD-" + System.currentTimeMillis();
+    }
 }

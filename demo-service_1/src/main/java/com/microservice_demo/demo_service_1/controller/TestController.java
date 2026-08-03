@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/en1/test")
-@CrossOrigin("*")
 @Slf4j
 public class TestController {
 

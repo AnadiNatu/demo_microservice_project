@@ -29,7 +29,7 @@ public class OAuth2SuccessHandler
 
     public static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
-    @Value("${app.frontend-url:http://localhost:3000}")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
 
     private final JwtTokenProvider jwtTokenProvider;

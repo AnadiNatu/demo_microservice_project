@@ -31,15 +31,16 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .cors(cors -> cors.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of("*"));
-                    config.setAllowedMethods(List.of("GET" , "POST" , "PUT" , "DELETE" , "PATCH" ,"OPTIONS"));
-                    config.setAllowedHeaders(List.of("*"));
-                    config.setExposedHeaders(List.of("*"));
-                    return config;
-                }))
+//                .cors(cors -> cors.configurationSource(request -> {
+//                    CorsConfiguration config = new CorsConfiguration();
+//                    config.setAllowedOrigins(List.of("*"));
+//                    config.setAllowedMethods(List.of("GET" , "POST" , "PUT" , "DELETE" , "PATCH" ,"OPTIONS"));
+//                    config.setAllowedHeaders(List.of("*"));
+//                    config.setExposedHeaders(List.of("*"));
+//                    return config;
+//                }))
 
+                .cors(cors -> cors.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()

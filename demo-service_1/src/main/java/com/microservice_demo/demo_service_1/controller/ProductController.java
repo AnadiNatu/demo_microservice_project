@@ -2,6 +2,7 @@ package com.microservice_demo.demo_service_1.controller;
 
 import com.microservice_demo.demo_service_1.dto.functionality.CreateProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
+import com.microservice_demo.demo_service_1.dto.functionality.ProductInfoDto;
 import com.microservice_demo.demo_service_1.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,6 @@ import java.util.Map;
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin("*")
 public class ProductController {
 
     private final ProductService productService;
@@ -136,14 +136,20 @@ public class ProductController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/list")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
-        log.info("[ProductController] Batch fetch products - IDs: {}", productIds);
-        List<ProductDto> products = productService.getProductsByIds(productIds);
-        log.info("[ProductController] ✅ Found {} products out of {} requested", products.size(), productIds.size());
-        return ResponseEntity.ok(products);
-    }
+//    @PostMapping("/list")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+//    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
+//        log.info("[ProductController] Batch fetch products - IDs: {}", productIds);
+//        List<ProductDto> products = productService.getProductsByIds(productIds);
+//        log.info("[ProductController] ✅ Found {} products out of {} requested", products.size(), productIds.size());
+//        return ResponseEntity.ok(products);
+//    }
+@PostMapping("/list")
+@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<Long> productIds) {
+    return ResponseEntity.ok(productService.getProductsByIds(productIds));
+}
+
 
     @GetMapping("/{productId}/available")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")

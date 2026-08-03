@@ -22,7 +22,7 @@ import java.util.List;
 @RequestMapping("/api/en1")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin("*")
+//@CrossOrigin("*")
 public class DemoEntity1Controller {
 
     private final DemoEntity1ServiceInterface service;

@@ -6,7 +6,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "demo-service2" , contextId = "demoService2SyncClient" , url = "${feign.demo-service2.url:http://localhost:8084}")
+//@FeignClient(name = "demo-service2" , contextId = "demoService2SyncClient" , url = "${feign.demo-service2.url:http://demo-service-2:8084}")
+@FeignClient(name = "demo-service2")
 public interface DemoService2FeignClient {
 
     @PostMapping("/api/en2/sync")

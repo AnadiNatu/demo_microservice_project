@@ -21,7 +21,6 @@ import java.util.Map;
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin("*")
 public class OrderController {
 
     private final OrderService orderService;
@@ -32,7 +31,7 @@ public class OrderController {
     @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto) {
         log.info("[USER|ADMIN] Create order — userId={} products={}",
-                dto.getUserId(), dto.getProductIds());
+                dto.getUserId(), dto.getShippingName());
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(dto));
     }
 
@@ -67,7 +66,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/cancel")
-    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
         log.info("Cancel order — id={}", orderId);
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
@@ -75,7 +74,7 @@ public class OrderController {
 
 //    ADMIN - only endpoint
 @GetMapping("/status/{status}")
-@PreAuthorize("hasAuthority('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
         @PathVariable                      String status,
         @RequestParam(defaultValue = "0")  int    page,
@@ -85,7 +84,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
 }
 
     @PutMapping("/{orderId}/status")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderDto> updateOrderStatus(
             @PathVariable Long   orderId,
             @RequestParam String status) {
@@ -94,7 +93,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getOrderStatistics() {
         log.info("[ADMIN] Get order statistics");
         return ResponseEntity.ok(orderService.getOrderStatistics());

@@ -1,5 +1,8 @@
 package com.microservice_demo.demo_service_1.controller;
 
+import com.microservice_demo.demo_service_1.entity.Product;
+import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
+import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import com.microservice_demo.demo_service_1.service.ProductImageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,17 +20,26 @@ public class ProductImageController {
     @Autowired
     private ProductImageService productImageService;
 
+    @Autowired
+    private ProductRepository productRepository;
+
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(
             @PathVariable Long productId,
             @RequestParam("file") MultipartFile file) {
-
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File must not be empty"));
         }
 
         try {
             String imageUrl = productImageService.uploadProductImage(productId, file);
+
+            // added: persist the new URL on the product row — previously only returned in the response, never saved
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+            product.setImageUrl(imageUrl);
+            productRepository.save(product);
+
             Map<String, String> response = new HashMap<>();
             response.put("message", "Image uploaded successfully");
             response.put("imageUrl", imageUrl);
@@ -52,6 +64,13 @@ public class ProductImageController {
         }
 
         try {
+
+            String imageUrl = productImageService.uploadProductImage(productId, file);
+
+            // added: persist the new URL on the product row — previously only returned in the response, never saved
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+            product.setImageUrl(imageUrl);
             String newImageUrl = productImageService.updateProductImage(productId, file, oldImageUrl);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Image updated successfully");

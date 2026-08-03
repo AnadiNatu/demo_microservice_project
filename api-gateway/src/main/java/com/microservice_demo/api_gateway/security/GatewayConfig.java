@@ -80,11 +80,11 @@ public class GatewayConfig {
                         .filters(f -> f.filter(filter))
                         .uri("lb://demo-service1"))
 
-                .route("ds1-products-protected", r -> r.path("/api/products/**")
+                .route("ds1-product-image" , r -> r.path("/api/products/*/images/**")
                         .filters(f -> f.filter(filter))
                         .uri("lb://demo-service1"))
 
-                .route("ds2-product-image" , r -> r.path("/api/products/*/images/**")
+                .route("ds1-products-protected", r -> r.path("/api/products/**")
                         .filters(f -> f.filter(filter))
                         .uri("lb://demo-service1"))
 

@@ -1,10 +1,9 @@
 package com.microservice_demo.demo_service_2.service;
 
 import com.microservice_demo.demo_service_2.aop.Stopwatch;
-import com.microservice_demo.demo_service_2.dto.functionality.CreatedOrderDto;
-import com.microservice_demo.demo_service_2.dto.functionality.OrderDto;
-import com.microservice_demo.demo_service_2.dto.functionality.ProductInfoDto;
+import com.microservice_demo.demo_service_2.dto.functionality.*;
 import com.microservice_demo.demo_service_2.entity.Order;
+import com.microservice_demo.demo_service_2.entity.OrderItem;
 import com.microservice_demo.demo_service_2.entity.Users;
 import com.microservice_demo.demo_service_2.enums.OrderStatus;
 import com.microservice_demo.demo_service_2.exception.errors.BadRequestException;
@@ -19,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,96 +39,143 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final DemoService1FeignClient demoService1Client;
+    private final ApplicationContext applicationContext;
+
+    private OrderService self() {
+        return applicationContext.getBean(OrderService.class);
+    }
 
 //    @CacheEvict(value = "orders" , allEntries = true)
 
-//    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
+    //    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
 //    @Retry(name = "demoService1")
     @Transactional
-    public OrderDto createOrder(CreatedOrderDto dto){
-        log.info("Creating order — userId={} products={}", dto.getUserId(), dto.getProductIds());
+    @Caching(evict = { // added: invalidate list caches so the new order is visible immediately
+            @CacheEvict(value = "userOrders", allEntries = true),
+            @CacheEvict(value = "statusOrders", allEntries = true)
+    })
+    public OrderDto createOrder(CreatedOrderDto dto) {
+        log.info("Creating order — userId={} itemCount={}", dto.getUserId(), dto.getItems().size());
 
-        Users user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new ResourceNotFoundException("User not synced in demo-service2 . userId=" +dto.getUserId()));
+        // 1. Validate user exists locally
+        Users user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not synced in demo-service2. userId=" + dto.getUserId()));
 
-        if (dto.getProductIds().size() != dto.getQuantities().size()){
-            throw new BadRequestException("productIds and quantities size mismatch");
+        // 2. Extract productIds from items for the Feign call
+        List<Long> productIds = dto.getItems().stream()
+                .map(CreateOrderItemDto::getProductId)
+                .collect(Collectors.toList());
+
+        if (productIds.isEmpty()) {
+            throw new BadRequestException("Order must contain at least one item");
         }
 
-        return createOrderWithRemoteCalls(dto , user);
+        // 3. Delegate the remote calls to the circuit-broken method
+        return self().createOrderWithRemoteCalls(dto, user, productIds);
     }
 
-    @CircuitBreaker(name = "demoService1" ,fallbackMethod = "createOrderFallback")
+    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderWithRemoteCallsFallback")
     @Retry(name = "demoService1")
     @Transactional
-    public OrderDto createOrderWithRemoteCalls(CreatedOrderDto dto , Users user){
+    public OrderDto createOrderWithRemoteCalls(CreatedOrderDto dto, Users user, List<Long> productIds) {
 
         // Fetch products from DS1
         List<ProductInfoDto> products;
         try {
-            products = demoService1Client.getProductsByIds(dto.getProductIds());
+            products = demoService1Client.getProductsByIds(productIds);
         } catch (Exception ex) {
             log.error("Feign failed: getProductsByIds — {}", ex.getMessage());
             throw new RuntimeException("Product service unavailable. Try again later.");
         }
 
-        if (products == null || products.size() != dto.getProductIds().size()) {
-            throw new BadRequestException("Some products not found in demo-service1");
+        if (products == null || products.size() != productIds.size()) {
+            throw new BadRequestException("Some products not found in demo-service1. " +
+                    "Requested=" + productIds.size() + " found=" + (products == null ? 0 : products.size()));
         }
 
         Map<Long, ProductInfoDto> productMap = products.stream()
                 .collect(Collectors.toMap(ProductInfoDto::getProductId, p -> p));
 
+        // Validate stock and build OrderItems
         BigDecimal total = BigDecimal.ZERO;
-        for (int i = 0; i < dto.getProductIds().size(); i++) {
-            Long pid = dto.getProductIds().get(i);
-            Integer qty = dto.getQuantities().get(i);
+        List<OrderItem> orderItems = new ArrayList<>();
+
+        for (CreateOrderItemDto itemDto : dto.getItems()) {
+            Long pid = itemDto.getProductId();
+            Integer qty = itemDto.getQuantity();
             ProductInfoDto product = productMap.get(pid);
 
             if (product == null) {
-                throw new ResourceNotFoundException("Product not found: " + pid);
+                throw new ResourceNotFoundException("Product not found in DS1: id=" + pid);
             }
             if (product.getStockQuantity() == null || product.getStockQuantity() < qty) {
-                throw new BadRequestException("Insufficient stock for productId=" + pid);
+                throw new BadRequestException("Insufficient stock for productId=" + pid
+                        + " available=" + product.getStockQuantity() + " requested=" + qty);
             }
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(qty)));
+
+            BigDecimal unitPrice = product.getPrice();
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(qty));
+            total = total.add(subtotal);
+
+            OrderItem item = OrderItem.builder()
+                    .productId(pid)
+                    .productName(product.getProductName())
+                    .category(product.getCategory())
+                    .brand(product.getBrand())
+                    .sku(product.getSku())
+                    .creatorUserId(product.getCreatorUserId())
+                    .creatorUsername(product.getCreatorUsername())
+                    .quantity(qty)
+                    .unitPrice(unitPrice)
+                    .subtotal(subtotal)
+                    .build();
+
+            orderItems.add(item);
         }
 
-        // Persist the order
+        // Persist order
         Order order = Order.builder()
                 .orderNumber("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .userId(dto.getUserId())
-                .productIds(new ArrayList<>(dto.getProductIds()))
-                .quantities(new ArrayList<>(dto.getQuantities()))
                 .totalAmount(total)
                 .orderStatus(OrderStatus.PENDING)
+                .shippingName(dto.getShippingName())
+                .shippingPhone(dto.getShippingPhone())
+                .shippingEmail(dto.getShippingEmail())
                 .shippingAddress(dto.getShippingAddress())
+                .shippingCity(dto.getShippingCity())
+                .shippingState(dto.getShippingState())
+                .shippingCountry(dto.getShippingCountry())
+                .postalCode(dto.getPostalCode())
                 .notes(dto.getNotes())
                 .orderDate(LocalDateTime.now())
                 .build();
 
+        // Bidirectional link
+        orderItems.forEach(order::addItem);
         Order saved = orderRepository.save(order);
         log.info("Order saved — {}", saved.getOrderNumber());
 
-        // Update stock in DS1
-        for (int i = 0; i < dto.getProductIds().size(); i++) {
-            Long pid = dto.getProductIds().get(i);
-            Integer qty = dto.getQuantities().get(i);
-            int newStock = productMap.get(pid).getStockQuantity() - qty;
+        // Decrement stock in DS1 (best-effort — log on failure but do not roll back)
+        for (CreateOrderItemDto itemDto : dto.getItems()) {
+            ProductInfoDto product = productMap.get(itemDto.getProductId());
+            int newStock = product.getStockQuantity() - itemDto.getQuantity();
             try {
-                demoService1Client.updateProductStock(pid, newStock);
+                demoService1Client.updateProductStock(itemDto.getProductId(), newStock);
             } catch (Exception ex) {
-                log.error("Stock update failed — rolling back order | pid={}", pid, ex);
-                throw new RuntimeException("Stock update failed. Order rolled back.");
+                log.error("Stock update failed — productId={} error={}", itemDto.getProductId(), ex.getMessage());
             }
         }
 
-        return toDto(saved, products);
+        return toDto(saved);
     }
 
     @SuppressWarnings("unused")
-    private OrderDto createOrderFallback(CreatedOrderDto dto , Exception e){
-        log.error("Fallback triggered for createOrder - Error : {}" , e.getMessage());
-        throw new RuntimeException("Order service is currently unavailable . Please try again later.");
+    private OrderDto createOrderWithRemoteCallsFallback(CreatedOrderDto dto, Users user,
+                                                        List<Long> productIds, Exception e) {
+        log.error("Circuit breaker fallback for createOrder — {}", e.getMessage());
+        throw new RuntimeException("Order service is currently unavailable. Please try again later.");
     }
 
     @Stopwatch
@@ -142,14 +189,14 @@ public class OrderService {
             return new ResourceNotFoundException("Order not found : " + orderId);
         });
 
-        List<ProductInfoDto> products = null;
-        if (order.getProductIds() != null && !order.getProductIds().isEmpty()){
-            log.info("Fetching product details for order {}" , orderId);
-            products = demoService1Client.getProductsByIds(order.getProductIds());
-        }
+//        List<ProductInfoDto> products = null;
+//        if (order.getProductIds() != null && !order.getProductIds().isEmpty()){
+//            log.info("Fetching product details for order {}" , orderId);
+//            products = demoService1Client.getProductsByIds(order.getProductIds());
+//        }
 
         log.info("Order found : {}" , order.getOrderNumber());
-        return toDto(order, products);
+        return toDto(order);
     }
 
     @SuppressWarnings("unused")
@@ -159,7 +206,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
-        return toDto(order, null); // Return without product details
+        return toDto(order); // Return without product details
     }
 
     @Stopwatch
@@ -171,23 +218,25 @@ public class OrderService {
         Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
 
         log.info("Found {} orders for user ID: {}", orderPage.getTotalElements(), userId);
-        return orderPage.map(order -> toDto(order, null));
+        return orderPage.map(order -> toDto(order));
     }
 
+    @Transactional(readOnly = true)
     @Stopwatch
     @Cacheable(value = "statusOrders", key = "#status + '_' + #page + '_' + #size")
     public Page<OrderDto> getOrdersByStatus(String status, int page, int size) {
         log.info("Fetching orders with status: {} - Page: {}, Size: {}", status, page, size);
 
-        OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
+//        OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
+        OrderStatus orderStatus = parseStatus(status);
         Pageable pageable = PageRequest.of(page, size, Sort.by("orderDate").descending());
         Page<Order> orderPage = orderRepository.findByOrderStatus(orderStatus, pageable);
 
         log.info("Found {} orders with status: {}", orderPage.getTotalElements(), status);
-        return orderPage.map(order -> toDto(order, null));
+        return orderPage.map(order -> toDto(order));
     }
 
-//    @CacheEvict(value = {"orders", "userOrders", "statusOrders"}, allEntries = true)
+    //    @CacheEvict(value = {"orders", "userOrders", "statusOrders"}, allEntries = true)
     @Stopwatch
     @Transactional
     @Caching(evict = {
@@ -205,7 +254,7 @@ public class OrderService {
         if (status == OrderStatus.DELIVERED){
             order.setDeliveryDate(LocalDateTime.now());
         }
-        return toDto(orderRepository.save(order) , null);
+        return toDto(orderRepository.save(order));
     }
 
     @Stopwatch
@@ -214,7 +263,8 @@ public class OrderService {
 
         List<Order> allOrders = orderRepository.findAll();
         long count = allOrders.stream()
-                .filter(order -> order.getProductIds() != null && order.getProductIds().contains(productId))
+                .filter(order -> order.getItems() != null &&
+                        order.getItems().stream().anyMatch(item -> productId.equals(item.getProductId())))
                 .count();
 
         log.info("[Feign] Product {} has been ordered {} times", productId, count);
@@ -230,7 +280,7 @@ public class OrderService {
         Page<Order> orderPage = orderRepository.findUserOrdersBetweenDates(userId, startDate, endDate, pageable);
 
         log.info("Found {} orders in date range", orderPage.getTotalElements());
-        return orderPage.map(order -> toDto(order, null));
+        return orderPage.map(order -> toDto(order));
     }
 
     @Stopwatch
@@ -244,9 +294,9 @@ public class OrderService {
         log.info("Cancelling order ID: {}", orderId);
 
         Order order = orderRepository.findById(orderId).orElseThrow(() -> {
-                    log.error("Order not found: {}", orderId);
-                    return new ResourceNotFoundException("Order not found: " + orderId);
-                });
+            log.error("Order not found: {}", orderId);
+            return new ResourceNotFoundException("Order not found: " + orderId);
+        });
 
         if (order.getOrderStatus() == OrderStatus.DELIVERED ||
                 order.getOrderStatus() == OrderStatus.CANCELLED) {
@@ -258,15 +308,15 @@ public class OrderService {
         Order updated = orderRepository.save(order);
 
         log.info("Order cancelled: {}", order.getOrderNumber());
-        return toDto(updated, null);
+        return toDto(updated);
     }
 
-// User with orders
-@Stopwatch
-public Boolean userHasOrders(Long userId) {
-    log.info("[Feign] Check user has orders — userId={}", userId);
-    return orderRepository.countByUserId(userId) > 0;
-}
+    // User with orders
+    @Stopwatch
+    public Boolean userHasOrders(Long userId) {
+        log.info("[Feign] Check user has orders — userId={}", userId);
+        return orderRepository.countByUserId(userId) > 0;
+    }
 
     //    Order Statics
     @Stopwatch
@@ -295,11 +345,11 @@ public Boolean userHasOrders(Long userId) {
         return stats;
     }
 
-//    Private Helper
-private Order requireOrder(Long id) {
-    return orderRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
-}
+    //    Private Helper
+    private Order requireOrder(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
+    }
 
     private OrderStatus parseStatus(String status) {
         try {
@@ -311,25 +361,49 @@ private Order requireOrder(Long id) {
         }
     }
 
-    private OrderDto toDto(Order order, List<ProductInfoDto> products) {
+    private OrderDto toDto(Order order) {
         Users user = userRepository.findById(order.getUserId()).orElse(null);
+
+        List<OrderItemDto> itemDtos = order.getItems() == null ? new ArrayList<>() :
+                order.getItems().stream().map(item -> OrderItemDto.builder()
+                                                      .orderItemId(item.getOrderItemId())
+                                                      .productId(item.getProductId())
+                                                      .productName(item.getProductName())
+                                                      .category(item.getCategory())
+                                                      .brand(item.getBrand())
+                                                      .sku(item.getSku())
+                                                      .creatorUserId(item.getCreatorUserId())
+                                                      .creatorUsername(item.getCreatorUsername())
+                                                      .quantity(item.getQuantity())
+                                                      .unitPrice(item.getUnitPrice())
+                                                      .subtotal(item.getSubtotal())
+                                                      .build()
+                ).collect(Collectors.toList());
 
         return OrderDto.builder()
                 .orderId(order.getOrderId())
                 .orderNumber(order.getOrderNumber())
                 .userId(order.getUserId())
                 .username(user != null ? user.getName() : "Unknown")
-                .productIds(order.getProductIds())
-                .productDetails(products)
-                .quantities(order.getQuantities())
-                .totalAmount(order.getTotalAmount())
                 .orderStatus(order.getOrderStatus().name())
+                .totalAmount(order.getTotalAmount())
+                .items(itemDtos)
+                .shippingName(order.getShippingName())
+                .shippingPhone(order.getShippingPhone())
+                .shippingEmail(order.getShippingEmail())
                 .shippingAddress(order.getShippingAddress())
+                .shippingCity(order.getShippingCity())
+                .shippingState(order.getShippingState())
+                .shippingCountry(order.getShippingCountry())
+                .postalCode(order.getPostalCode())
                 .notes(order.getNotes())
                 .orderDate(order.getOrderDate())
-                .deliveryDate(order.getDeliveryDate())
                 .createdOn(order.getCreatedOn())
                 .updatedOn(order.getUpdatedOn())
+                .shippedDate(order.getShippedDate())
+                .estimatedDelivery(order.getEstimatedDelivery())
+                .deliveryDate(order.getDeliveryDate())
+                .cancelledDate(order.getCancelledDate())
                 .build();
     }
 }

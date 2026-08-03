@@ -29,7 +29,7 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("http://localhost:5173")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Bean

@@ -16,13 +16,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin("*")
 public class UserController {
 
     private final UserService service;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Users> create(@RequestBody CreateUserDto dto) {
         log.info("[UserController] Creating user: {}", dto.getEmail());
         Users created = service.createUser(dto);

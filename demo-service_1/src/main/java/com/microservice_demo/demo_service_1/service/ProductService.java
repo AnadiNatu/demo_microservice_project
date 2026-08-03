@@ -2,6 +2,7 @@ package com.microservice_demo.demo_service_1.service;
 
 import com.microservice_demo.demo_service_1.dto.functionality.CreateProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
+import com.microservice_demo.demo_service_1.dto.functionality.ProductInfoDto;
 import com.microservice_demo.demo_service_1.entity.Product;
 import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.exception.errors.BadRequestException;
@@ -161,15 +162,34 @@ public class ProductService {
     }
 
 //    Used by Demo Service 2
-    @Transactional(readOnly = true)
-     public List<ProductDto> getProductsByIds(List<Long> productIds){
-        log.info("Fetching products by IDs : {}" , productIds);
+//    @Transactional(readOnly = true)
+//     public List<ProductDto> getProductsByIds(List<Long> productIds){
+//        log.info("Fetching products by IDs : {}" , productIds);
+//
+//        List<Product> products = productRepository.findByProductIdIn(productIds);
+//        log.info("Found {} products out of {} requested IDs" , products.size() , productIds.size());
+//
+//        return products.stream().map(this::toDto).collect(Collectors.toList());
+//     }
 
-        List<Product> products = productRepository.findByProductIdIn(productIds);
-        log.info("Found {} products out of {} requested IDs" , products.size() , productIds.size());
-
-        return products.stream().map(this::toDto).collect(Collectors.toList());
-     }
+    public List<ProductInfoDto> getProductsByIds(List<Long> productIds) {
+        return productRepository.findByProductIdIn(productIds)
+                .stream().map(p -> ProductInfoDto.builder()
+                        .productId(p.getProductId())
+                        .productName(p.getName())
+                        .description(p.getDescription())
+                        .price(p.getPrice())
+                        .stockQuantity(p.getStockQuantity())
+                        .category(p.getCategory())
+                        .sku(p.getSku())
+                        .brand(p.getBrand())
+                        .imageUrl(p.getImageUrl())
+                        .active(p.getActive())
+                        .creatorUserId(p.getCreatedBy() != null ? p.getCreatedBy().getUserId() : null)
+                        .creatorUsername(p.getCreatedBy() != null ? p.getCreatedBy().getUsername() : null)
+                        .build())
+                .collect(Collectors.toList());
+    }
 
      @CircuitBreaker(name = "demoService2" , fallbackMethod = "getOrderStatsFallback")
      @Retry(name = "demoService2")

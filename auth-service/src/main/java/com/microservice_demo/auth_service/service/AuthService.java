@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -42,6 +43,11 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final NotificationService notificationService;
     private final UserSyncService userSyncService;
+    private final ApplicationContext applicationContext; // added
+
+    private AuthService self() { // added: resolves the proxied bean so annotated methods called internally aren't bypassed
+        return applicationContext.getBean(AuthService.class);
+    }
 
     @Transactional
     @Caching(evict = {
@@ -87,7 +93,7 @@ public class AuthService {
         Users savedUser = userRepository.save(user);
         log.info("User created successfully : {} with roles : {}" ,savedUser.getUsername() , roles);
 
-        syncUserToMicroservices(savedUser);
+        self().syncUserToMicroservices(savedUser);
 
 //        Auto-login after registration
         log.debug("Performing auto-login for user: {}", request.getUsername());
@@ -187,7 +193,7 @@ public class AuthService {
         }
     }
 
-    @Cacheable(value = "refreshToken" , key = "#request.refreshToken")
+//    @Cacheable(value = "refreshToken" , key = "#request.refreshToken")
     public AuthResponse refreshToken(RefreshTokenRequest request){
         log.info("Token refresh request received");
         String refreshToken = request.getRefreshToken();
@@ -224,7 +230,7 @@ public class AuthService {
                 .build();
     }
 
-    @Cacheable(value = "token" , key = "#request.token")
+//    @Cacheable(value = "token" , key = "#request.token")
     public ValidateTokenResponse validateToken(ValidateTokenRequest request) {
         log.debug("Token validation request received");
         try {
