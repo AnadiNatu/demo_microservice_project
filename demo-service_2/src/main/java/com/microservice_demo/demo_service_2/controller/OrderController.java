@@ -2,6 +2,7 @@ package com.microservice_demo.demo_service_2.controller;
 
 import com.microservice_demo.demo_service_2.dto.functionality.CreatedOrderDto;
 import com.microservice_demo.demo_service_2.dto.functionality.OrderDto;
+import com.microservice_demo.demo_service_2.security.GatewayAuthentication;
 import com.microservice_demo.demo_service_2.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -28,32 +30,42 @@ public class OrderController {
     // USER + ADMIN endpoints
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
-    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto) {
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto  , @AuthenticationPrincipal GatewayAuthentication auth) {
+        Long userId = auth.getUserId();
+        dto.setUserId(userId);
         log.info("[USER|ADMIN] Create order — userId={} products={}",
                 dto.getUserId(), dto.getShippingName());
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(dto));
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<OrderDto> getOrder(@PathVariable Long orderId) {
         log.info("Get order — id={}", orderId);
         return ResponseEntity.ok(orderService.getOrder(orderId));
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByUserId(
             @PathVariable                      Long userId,
             @RequestParam(defaultValue = "0")  int  page,
+            @AuthenticationPrincipal GatewayAuthentication auth,
             @RequestParam(defaultValue = "10") int  size) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !auth.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         log.info("Get orders by userId — userId={} page={} size={}", userId, page, size);
         return ResponseEntity.ok(orderService.getOrdersByUserId(userId, page, size));
     }
 
     @GetMapping("/user/{userId}/date-range")
-    @PreAuthorize("hasAnyAuthority('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByDateRange(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
