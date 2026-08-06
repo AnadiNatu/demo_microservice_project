@@ -71,6 +71,13 @@ public class GatewayConfig {
                 .route("ds1-en1-test-public", r -> r.path("/api/en1/test/public")
                         .uri("lb://demo-service1"))
 
+
+                .route("ds2-users-sync-public", r -> r.path("/api/users/sync")
+                        .uri("lb://demo-service2"))
+
+                .route("ds2-users-sync-profile-public", r -> r.path("/api/users/sync/profile-picture")
+                        .uri("lb://demo-service2"))
+
                 // ── DEMO-SERVICE-1 — PROTECTED ────────────────────────────────
                 .route("ds1-en1-protected", r -> r.path("/api/en1/**")
                         .filters(f -> f.filter(filter))

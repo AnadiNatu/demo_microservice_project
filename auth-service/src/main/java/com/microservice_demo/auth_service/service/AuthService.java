@@ -270,11 +270,11 @@ public class AuthService {
         log.debug("User sync data retrieved for: {}", user.getUsername());
 
         return UserSyncDto.builder()
-                .id(user.getId())
+                .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .roles(user.getRoles())
+                .phone(user.getPhoneNumber())
+                .role(user.getRoles())
                 .profilePicture(user.getProfilePicture())
                 .build();
     }

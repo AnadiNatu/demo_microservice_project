@@ -19,9 +19,9 @@ import java.util.Set;
 @Builder
 public class Users {
 
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @SequenceGenerator(name = "ds2_users_seq" , sequenceName = "ds2_users_seq" , allocationSize = 1 , initialValue = 10000)
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @SequenceGenerator(name = "ds2_users_seq" , sequenceName = "ds2_users_seq" , allocationSize = 1 , initialValue = 10000)
     private Long userId;
 
     private String name;
@@ -31,8 +31,12 @@ public class Users {
 
     private String phone;
 
-    @Enumerated(EnumType.STRING)
-    private UserRoles role;
+//    @Enumerated(EnumType.STRING)
+//    private UserRoles role;
+@ElementCollection(fetch = FetchType.EAGER)
+@CollectionTable(name = "user_roles_ds2", joinColumns = @JoinColumn(name = "user_id"))
+@Column(name = "role")
+private Set<String> role = new HashSet<>();
 
     @Column(nullable = false , columnDefinition = "boolean default false")
     private boolean de1ConnectionFlag;
@@ -61,4 +65,6 @@ public class Users {
     public void setDe1ConnectionFlag(boolean b) {
         this.de1ConnectionFlag = b;
     }
+
+    public void setDe2ConnectionFlag(boolean b) {this.de2ConnectionFlag = b;}
 }

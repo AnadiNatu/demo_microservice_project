@@ -47,10 +47,10 @@ public class OrderItem {
     @Column(length = 100)
     private String sku;
 
-    @Column(nullable = false)
+    @Column(name = "creator_user_id")
     private Long creatorUserId;
 
-    @Column(length = 100)
+    @Column(name = "creator_username")
     private String creatorUsername;
 
     @Column(nullable = false)

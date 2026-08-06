@@ -2,6 +2,7 @@ package com.microservice_demo.demo_service_2.security;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,6 +20,7 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
+@EnableCaching
 @Slf4j
 public class SecurityConfig {
 
@@ -44,11 +46,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+
+                        // FIXED: add the /api/users/sync paths that Feign actually calls
+                        .requestMatchers("/api/users/sync").permitAll()
+                        .requestMatchers("/api/users/sync/profile-picture").permitAll()
+
+                        // keep old en2 aliases too, doesn't hurt
                         .requestMatchers("/api/en2/sync").permitAll()
                         .requestMatchers("/api/en2/sync/profile-picture").permitAll()
                         .requestMatchers("/api/en2/user/**").permitAll()
                         .requestMatchers("/api/en2/test/public").permitAll()
-
                         .requestMatchers("/api/en2/test/service2").permitAll()
 
                         .requestMatchers("/api/orders/product/*/count").permitAll()

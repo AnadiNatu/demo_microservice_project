@@ -117,6 +117,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return uri.equals("/api/en2/sync") ||
                 uri.startsWith("/api/en2/user") ||
                 uri.contains("/api/en2/test/public") ||
+                uri.equals("/api/users/sync") ||  // ← ADD THIS LINE
+                uri.equals("/api/users/sync/profile-picture") ||
 
                 uri.equals("/api/en2/sync/profile-picture")||
                 uri.matches("/api/orders/product/\\d+/count") ||

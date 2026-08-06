@@ -3,6 +3,7 @@ package com.microservice_demo.demo_service_1.controller;
 import com.microservice_demo.demo_service_1.dto.functionality.CreateProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductInfoDto;
+import com.microservice_demo.demo_service_1.security.GatewayAuthentication;
 import com.microservice_demo.demo_service_1.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,16 +33,20 @@ public class ProductController {
     // ========== ADMIN-ONLY ENDPOINTS ==========
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody CreateProductDto dto) {
-        log.info("[ProductController] [ADMIN] Creating product: {}", dto.getProductName());
+        GatewayAuthentication auth = requireGatewayAuth();   // same helper pattern as OrderController
+        dto.setCreatedByUserId(auth.getUserId());             // ALWAYS set from the authenticated admin
+
+        log.info("[ProductController] [ADMIN] Creating product: {} by userId={}",
+                dto.getProductName(), dto.getCreatedByUserId());
         ProductDto created = productService.createProduct(dto);
         log.info("[ProductController] ✅ Product created with ID: {}", created.getProductId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Page<ProductDto>> getAllProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -50,7 +58,7 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}/deactivate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ProductDto> deactivateProduct(@PathVariable Long productId) {
         log.info("[ProductController] [ADMIN] Deactivating product ID: {}", productId);
         ProductDto deactivated = productService.deactivateProduct(productId);
@@ -59,30 +67,30 @@ public class ProductController {
     }
 
 
-    @PostMapping("/{productId}/image")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDto> uploadProductImage(
-            @PathVariable Long productId,
-            @RequestParam("file") MultipartFile file) {
-        log.info("[ProductController] [ADMIN] Upload image for productId={}", productId);
-        ProductDto updated = productService.uploadProductImage(productId, file);
-        log.info("[ProductController] Image uploaded | productId={} | url={}",
-                productId, updated.getImageUrl());
-        return ResponseEntity.ok(updated);
-    }
+//    @PostMapping("/{productId}/image")
+//    @PreAuthorize("hasRole('ROLE_ADMIN')")
+//    public ResponseEntity<ProductDto> uploadProductImage(
+//            @PathVariable Long productId,
+//            @RequestParam("file") MultipartFile file) {
+//        log.info("[ProductController] [ADMIN] Upload image for productId={}", productId);
+//        ProductDto updated = productService.uploadProductImage(productId, file);
+//        log.info("[ProductController] Image uploaded | productId={} | url={}",
+//                productId, updated.getImageUrl());
+//        return ResponseEntity.ok(updated);
+//    }
 
-    @DeleteMapping("/{productId}/image")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDto> removeProductImage(@PathVariable Long productId) {
-        log.info("[ProductController] [ADMIN] Remove image for productId={}", productId);
-        ProductDto updated = productService.removeProductImage(productId);
-        log.info("[ProductController] Image removed | productId={}", productId);
-        return ResponseEntity.ok(updated);
-    }
+//    @DeleteMapping("/{productId}/image")
+//    @PreAuthorize("hasRole('ROLE_ADMIN')")
+//    public ResponseEntity<ProductDto> removeProductImage(@PathVariable Long productId) {
+//        log.info("[ProductController] [ADMIN] Remove image for productId={}", productId);
+//        ProductDto updated = productService.removeProductImage(productId);
+//        log.info("[ProductController] Image removed | productId={}", productId);
+//        return ResponseEntity.ok(updated);
+//    }
 
     // ========== USER + ADMIN ENDPOINTS ==========
     @GetMapping("/{productId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<ProductDto> getProduct(@PathVariable Long productId) {
         log.info("[ProductController] Get product ID: {}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -91,7 +99,7 @@ public class ProductController {
     }
 
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<ProductDto>> getActiveProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -102,7 +110,7 @@ public class ProductController {
     }
 
     @GetMapping("/category/{category}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<ProductDto>> getProductsByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
@@ -114,7 +122,7 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<ProductDto>> searchProducts(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -126,7 +134,7 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}/stock")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<ProductDto> updateStock(
             @PathVariable Long productId,
             @RequestParam Integer quantity) {
@@ -145,14 +153,14 @@ public class ProductController {
 //        return ResponseEntity.ok(products);
 //    }
 @PostMapping("/list")
-@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
 public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<Long> productIds) {
     return ResponseEntity.ok(productService.getProductsByIds(productIds));
 }
 
 
     @GetMapping("/{productId}/available")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Boolean> isProductAvailable(@PathVariable Long productId) {
         log.info("[ProductController] Check availability - productId={}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -164,7 +172,7 @@ public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<L
     }
 
     @GetMapping("/{productId}/order-stats")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> getProductOrderStats(@PathVariable Long productId) {
         log.info("[ProductController] Get order stats — productId={}", productId);
         ProductDto product = productService.getProduct(productId);
@@ -177,7 +185,7 @@ public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<L
     }
 
     @PostMapping("/order-stats/batch")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> getBatchProductOrderStats(
             @RequestBody List<Long> productIds) {
         log.info("[ProductController] Batch order stats — productIds={}", productIds);
@@ -189,5 +197,16 @@ public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<L
             result.put(String.valueOf(pid), entry);
         }
         return ResponseEntity.ok(result);
+    }
+
+
+    private GatewayAuthentication requireGatewayAuth() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof GatewayAuthentication auth)) {
+            log.error("[ProductController] Expected GatewayAuthentication but got: {}",
+                    authentication != null ? authentication.getClass().getName() : "null");
+            throw new AccessDeniedException("Missing or invalid gateway authentication");
+        }
+        return auth;
     }
 }

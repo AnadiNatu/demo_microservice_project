@@ -33,5 +33,7 @@ public class CreateProductDto {
     @Size(max = 50)
     private String sku;
 
+    private String brand;
+
     private Long createdByUserId;
 }

@@ -1,14 +1,11 @@
 package com.microservice_demo.demo_service_2.cache;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,22 +16,20 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class CacheConfig {
 
-        @Bean
-        public CacheManager cacheManager(){
-            log.info("Initializing Caffeine Cache Manager");
+    @Bean
+    public CacheManager cacheManager() {
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                "orders",            // Orders by ID
+                "userOrders",        // Orders by user ID
+                "statusOrders",      // Orders by status
+                "users"              // Users cache (sync from auth-service)
+        );
 
-            CaffeineCacheManager cacheManager = new CaffeineCacheManager("products" , "productPages" , "activeProducts" , "categoryProducts");
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+                .expireAfterWrite(10, TimeUnit.MINUTES)
+                .maximumSize(1000)
+                .recordStats());
 
-            cacheManager.setCaffeine(caffeineCacheBuilder());
-            log.info("Cache Manager initialized with caches : products , productPages , activeProducts , categoryProducts");
-            return cacheManager;
-        }
-
-        private Caffeine<Object , Object> caffeineCacheBuilder(){
-            return Caffeine.newBuilder()
-                    .initialCapacity(100)
-                    .maximumSize(1000)
-                    .expireAfterWrite(10 , TimeUnit.MINUTES)
-                    .recordStats();
-        }
+        return cacheManager;
+    }
 }

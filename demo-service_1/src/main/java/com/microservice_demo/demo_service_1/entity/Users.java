@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 public class Users implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY , generator = "ds1_users_seq")
-    @SequenceGenerator(name = "ds1_users_seq" , sequenceName = "ds1_users_seq" , allocationSize = 1 , initialValue = 10000)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY , generator = "ds1_users_seq")
+//    @SequenceGenerator(name = "ds1_users_seq" , sequenceName = "ds1_users_seq" , allocationSize = 1 , initialValue = 10000)
     private Long userId;
 
     private String username;

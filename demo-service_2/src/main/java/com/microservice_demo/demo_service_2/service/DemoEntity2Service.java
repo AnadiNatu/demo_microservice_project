@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -87,6 +88,10 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     @Override
     @Transactional
     public Users createUser(CreateUserDto dto, Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required — cannot create a user without an ID from auth-service");
+        }
+
         Users user = null;
 
         // Prefer lookup by explicit PK (most reliable)
@@ -118,10 +123,10 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
             String roleStr = dto.getUserRole() != null
                     ? dto.getUserRole().replace("ROLE_", "").toUpperCase()
                     : "USER";
-            user.setRole(UserRoles.valueOf(roleStr));
+            user.setRole(Set.of(roleStr));
         } catch (Exception ex) {
             log.warn("[DS2] Unknown role '{}', defaulting to USER", dto.getUserRole());
-            user.setRole(UserRoles.USER);
+            user.setRole(Set.of(UserRoles.USER.toString()));
         }
 
         Users saved = userRepo.save(user);
@@ -187,27 +192,31 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
     @Transactional
     public void syncUser(UserSyncDto dto) {
 
-        Users user = userRepo.findById(dto.getId())
+        if (dto.getUserId() == null) {
+            throw new IllegalArgumentException("Cannot sync user without an id from auth-service: " + dto.getEmail());
+        }
+
+        Users user = userRepo.findById(dto.getUserId())
                 .orElseGet(() ->
                         userRepo.findByEmail(dto.getEmail())
                                 .orElse(new Users())
                 );
 
         if (user.getUserId() == null) {
-            user.setUserId(dto.getId());
+            user.setUserId(dto.getUserId());
         }
 
         user.setName(dto.getUsername());
 
         user.setEmail(dto.getEmail());
 
-        user.setPhone(dto.getPhoneNumber());
+//        user.setPhone(dto.getPhoneNumber());
 
-        user.setProfilePicture(dto.getProfilePicture());
+//        user.setProfilePicture(dto.getProfilePicture());
 
-        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+        if (dto.getRole() != null && !dto.getRole().isEmpty()) {
 
-            String role = dto.getRoles()
+            String role = dto.getRole()
                     .iterator()
                     .next()
                     .replace("ROLE_", "")
@@ -215,13 +224,13 @@ public class DemoEntity2Service implements DemoEntity2ServiceInterface {
 
             try {
 
-                user.setRole(UserRoles.valueOf(role));
+                user.setRole(Set.of(role));
 
             } catch (Exception ex) {
 
                 log.warn("Unknown role {}, defaulting USER", role);
 
-                user.setRole(UserRoles.USER);
+                user.setRole(Set.of(UserRoles.USER.toString()));
 
             }
 

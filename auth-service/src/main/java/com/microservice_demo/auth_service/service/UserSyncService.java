@@ -117,25 +117,25 @@ public class UserSyncService {
 
     private UserSyncDto buildSyncDto(Users user){
         return UserSyncDto.builder()
-                .id(user.getId())
+                .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .roles(user.getRoles())
+                .phone(user.getPhoneNumber())
+                .role(user.getRoles())
                 .profilePicture(user.getProfilePicture())
                 .build();
     }
-
-    private boolean isConnectionRefused(Exception ex){
-        Throwable cause = ex;
-        while(cause != null){
-            if (cause instanceof java.net.ConnectException) return true;
-            if (cause.getMessage() != null && (cause.getMessage().contains("Connection refused") || cause.getMessage().contains("Connect timed out"))) return true;
-
-            cause = cause.getCause();
-        }
-        return false;
-    }
+//
+//    private boolean isConnectionRefused(Exception ex){
+//        Throwable cause = ex;
+//        while(cause != null){
+//            if (cause instanceof java.net.ConnectException) return true;
+//            if (cause.getMessage() != null && (cause.getMessage().contains("Connection refused") || cause.getMessage().contains("Connect timed out"))) return true;
+//
+//            cause = cause.getCause();
+//        }
+//        return false;
+//    }
 
     private void sleep(long millis) {
         try {
@@ -144,49 +144,16 @@ public class UserSyncService {
             Thread.currentThread().interrupt();
         }
     }
-//    public void syncUserToMicroservices(Users user) {
-//        log.info("[SYNC] Starting user sync | username={}", user.getUsername());
-//
-//        UserSyncDto syncDto = UserSyncDto.builder()
-//                .id(user.getId())
-//                .username(user.getUsername())
-//                .email(user.getEmail())
-//                .phoneNumber(user.getPhoneNumber())
-//                .roles(user.getRoles())
-//                .profilePicture(user.getProfilePicture())
-//                .build();
-//
-//        try {
-//            demoService1Client.syncUser(syncDto);
-//            log.info("[SYNC] User synced to Demo-Service1 | username={}", user.getUsername());
-//        } catch (Exception ex) {
-//            log.error("[SYNC] Demo-Service1 sync failed | username={} | error={}", user.getUsername(), ex.getMessage());
-//        }
-//
-//        try {
-//            demoService2Client.syncUser(syncDto);
-//            log.info("[SYNC] User synced to Demo-Service2 | username={}", user.getUsername());
-//        } catch (Exception ex) {
-//            log.error("[SYNC] Demo-Service2 sync failed | username={} | error={}", user.getUsername(), ex.getMessage());
-//        }
-//    }
-//
-//    public void syncProfilePictureUpdate(Long userId , String profilePictureUrl){
-//        log.info("[SYNC] Syncing profile-picture | userId={}" , userId);
-//        try{
-//            ProfilePictureSyncDto syncDto = ProfilePictureSyncDto.builder()
-//                    .userId(userId)
-//                    .profilePictureUrl(profilePictureUrl)
-//                    .build();
-//
-//            demoService1Client.syncProfilePicture(syncDto);
-//            demoService2Client.syncProfilePicture(syncDto);
-//            log.info("[SYNC] Profile-picture synced successfully | userId={}", userId);
-//
-//        } catch (Exception ex) {
-//
-//            log.error("[SYNC] Profile-picture sync failed | userId={} | error={}",
-//                    userId, ex.getMessage());
-//        }
-//    }
+
+    private boolean isConnectionRefused(Exception ex){
+        Throwable cause = ex;
+        while(cause != null){
+            if (cause instanceof java.net.ConnectException) return true;
+            if (cause instanceof java.net.UnknownHostException) return true; // added: treat DNS-not-ready as retryable too
+            if (cause.getMessage() != null && (cause.getMessage().contains("Connection refused") || cause.getMessage().contains("Connect timed out"))) return true;
+
+            cause = cause.getCause();
+        }
+        return false;
+    }
 }

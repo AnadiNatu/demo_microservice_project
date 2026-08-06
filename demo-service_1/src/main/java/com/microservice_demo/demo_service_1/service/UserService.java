@@ -29,58 +29,108 @@ public class UserService implements UserServiceInterface {
 
     @Override
     public Users createUser(CreateUserDto dto){
-        return createUser(dto , null);
+        throw new UnsupportedOperationException(
+                "Direct user creation is disabled. Users must be provisioned via /api/users/sync from auth-service."
+        );
     }
 
-    public Users createUser(CreateUserDto dto , Long authServiceId) {
+//    public Users createUser(CreateUserDto dto , Long authServiceId) {
+//
+//        Optional<Users> existingByEmail = repo.findAll().stream()
+//                .filter(u -> u.getEmail().equals(dto.getEmail()))
+//                .findFirst();
+//
+//        if (existingByEmail.isPresent()) {
+//            log.info("[DS1] User already exists with email: {}", dto.getEmail());
+//            return existingByEmail.get(); // Return existing user instead of creating duplicate
+//        }
+//
+//        Users user = new Users();
+//
+//        if (authServiceId != null) {
+//            user.setUserId(authServiceId);
+//        }
+//
+//        user.setUsername(dto.getName());
+//        user.setEmail(dto.getEmail());
+//        user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
+//
+//        //Convert single role string → Set<String>
+//        Set<String> roles = new HashSet<>();
+//        String roleStr = dto.getUserRole();
+//
+//        // Handle "ROLE_ADMIN", "ADMIN", or null/empty
+//        if (roleStr != null && !roleStr.isEmpty()) {
+//            roles.add(roleStr.startsWith("ROLE_")
+//                    ? roleStr
+//                    : "ROLE_" + roleStr.toUpperCase());
+//        } else {
+//            roles.add("ROLE_USER"); // default role
+//        }
+//
+//        user.setRole(roles);
+//        user.setDe1ConnectionFlag(false);
+//        user.setDe2ConnectionFlag(false);
+//
+//        //Security flags (MUST be set for Spring Security UserDetails)
+//        user.setEnabled(true);
+//        user.setAccountNonExpired(true);
+//        user.setAccountNonLocked(true);
+//        user.setCredentialsNonExpired(true);
+//
+//        Users saved = repo.save(user);
+//        log.info("[DS1] User created | email={}", saved.getEmail());
+//
+//        return saved;
+//    }
 
-        Optional<Users> existingByEmail = repo.findAll().stream()
-                .filter(u -> u.getEmail().equals(dto.getEmail()))
-                .findFirst();
+    public Users createUser(CreateUserDto dto, Long userId) {
+    log.info("[DS1] Creating user: email={} userId={}", dto.getEmail(), userId);
 
-        if (existingByEmail.isPresent()) {
-            log.info("[DS1] User already exists with email: {}", dto.getEmail());
-            return existingByEmail.get(); // Return existing user instead of creating duplicate
-        }
-
-        Users user = new Users();
-
-        if (authServiceId != null) {
-            user.setUserId(authServiceId);
-        }
-
-        user.setUsername(dto.getName());
-        user.setEmail(dto.getEmail());
-        user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
-
-        //Convert single role string → Set<String>
-        Set<String> roles = new HashSet<>();
-        String roleStr = dto.getUserRole();
-
-        // Handle "ROLE_ADMIN", "ADMIN", or null/empty
-        if (roleStr != null && !roleStr.isEmpty()) {
-            roles.add(roleStr.startsWith("ROLE_")
-                    ? roleStr
-                    : "ROLE_" + roleStr.toUpperCase());
-        } else {
-            roles.add("ROLE_USER"); // default role
-        }
-
-        user.setRole(roles);
-        user.setDe1ConnectionFlag(false);
-        user.setDe2ConnectionFlag(false);
-
-        //Security flags (MUST be set for Spring Security UserDetails)
-        user.setEnabled(true);
-        user.setAccountNonExpired(true);
-        user.setAccountNonLocked(true);
-        user.setCredentialsNonExpired(true);
-
-        Users saved = repo.save(user);
-        log.info("[DS1] User created | email={}", saved.getEmail());
-
-        return saved;
+    // userId MUST be provided by auth-service
+    if (userId == null) {
+        throw new IllegalArgumentException("authServiceId is required — cannot create a user without an ID from auth-service");
     }
+
+    // Check if user already exists
+    Optional<Users> existingByEmail = repo.findAll().stream()
+            .filter(u -> u.getEmail().equals(dto.getEmail()))
+            .findFirst();
+
+    if (existingByEmail.isPresent()) {
+        log.info("[DS1] User already exists: email={}", dto.getEmail());
+        return existingByEmail.get();
+    }
+
+    // Create new user with userId from auth-service
+    Users user = new Users();
+    user.setUserId(userId);  // ← THIS IS CRITICAL — set the ID from auth-service
+    user.setUsername(dto.getName());
+    user.setEmail(dto.getEmail());
+    user.setPhone(dto.getPhone() != null ? dto.getPhone() : "");
+
+    // Handle roles
+    Set<String> roles = new HashSet<>();
+    String roleStr = dto.getUserRole();
+    if (roleStr != null && !roleStr.isEmpty()) {
+        roles.add(roleStr.startsWith("ROLE_") ? roleStr : "ROLE_" + roleStr.toUpperCase());
+    } else {
+        roles.add("ROLE_USER");
+    }
+    user.setRole(roles);
+
+    // Security flags
+    user.setEnabled(true);
+    user.setAccountNonExpired(true);
+    user.setAccountNonLocked(true);
+    user.setCredentialsNonExpired(true);
+    user.setDe1ConnectionFlag(true);
+    user.setDe2ConnectionFlag(false);
+
+    Users saved = repo.save(user);
+    log.info("✅ [DS1] User created successfully: userId={} email={}", saved.getUserId(), saved.getEmail());
+    return saved;
+}
 
     @Override
     public Users getUser(Long id) {

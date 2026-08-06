@@ -7,6 +7,7 @@ import com.microservice_demo.demo_service_1.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -39,32 +40,66 @@ public class UserController {
     }
 
     @PostMapping("/sync")
-    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto) {
-        log.info("[UserController] Received user sync for: {}", syncDto.getEmail());
+    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto dto) {
+        log.info("[DS1] Received sync request: userId={} email={}", dto.getUserId(), dto.getEmail());
 
-        CreateUserDto dto = new CreateUserDto();
-        dto.setName(syncDto.getUsername());
-        dto.setEmail(syncDto.getEmail());
-        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
+        try {
+            // Extract userId from the DTO
+            Long userId = dto.getUserId();
+            if (userId == null) {
+                log.error("[DS1] Missing userId in sync request");
+                return ResponseEntity.badRequest().body("userId is required");
+            }
 
-        String role = "ROLE_USER";
-        if (syncDto.getRoles() != null && !syncDto.getRoles().isEmpty()) {
-            String raw = syncDto.getRoles().iterator().next();
-            role = raw.startsWith("ROLE_") ? raw : "ROLE_" + raw.toUpperCase();
+            // Create the user with the userId from auth-service
+            CreateUserDto createDto = CreateUserDto.builder()
+                    .name(dto.getUsername())
+                    .email(dto.getEmail())
+                    .phone(dto.getPhone())
+                    .userRole(dto.getRole() != null && !dto.getRole().isEmpty()
+                            ? dto.getRole().iterator().next()
+                            : "ROLE_USER")
+                    .build();
+
+            Users synced = service.createUser(createDto, userId);
+
+            log.info("✅ [DS1] User synced successfully: userId={}", synced.getUserId());
+            return ResponseEntity.ok("User synced successfully");
+
+        } catch (Exception ex) {
+            log.error("❌ [DS1] Sync failed: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Sync failed: " + ex.getMessage());
         }
-        dto.setUserRole(role);
-
-        // CRITICAL: pass the auth-service ID so the local row is stored with the same PK
-        Users saved = service.createUser(dto, syncDto.getId());
-
-        // Sync profile picture if available
-        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
-            service.updateProfilePicture(saved.getUserId(), syncDto.getProfilePicture());
-        }
-
-        log.info("[DS1 Sync] User upserted | id={} email={}", saved.getUserId(), saved.getEmail());
-        return ResponseEntity.ok("User synced successfully to Demo-Service1");
     }
+
+//    @PostMapping("/sync")
+//    public ResponseEntity<String> syncUser(@RequestBody UserSyncDto syncDto) {
+//        log.info("[UserController] Received user sync for: {}", syncDto.getEmail());
+//
+//        CreateUserDto dto = new CreateUserDto();
+//        dto.setName(syncDto.getUsername());
+//        dto.setEmail(syncDto.getEmail());
+////        dto.setPhone(syncDto.getPhoneNumber() != null ? syncDto.getPhoneNumber() : "");
+//
+//        String role = "ROLE_USER";
+//        if (syncDto.getRole() != null && !syncDto.getRole().isEmpty()) {
+//            String raw = syncDto.getRole().iterator().next();
+//            role = raw.startsWith("ROLE_") ? raw : "ROLE_" + raw.toUpperCase();
+//        }
+//        dto.setUserRole(role);
+//
+//        // CRITICAL: pass the auth-service ID so the local row is stored with the same PK
+//        Users saved = service.createUser(dto, syncDto.getUserId());
+//
+//        // Sync profile picture if available
+////        if (syncDto.getProfilePicture() != null && !syncDto.getProfilePicture().isBlank()) {
+////            service.updateProfilePicture(saved.getUserId(), syncDto.getProfilePicture());
+////        }
+//
+//        log.info("[DS1 Sync] User upserted | id={} email={}", saved.getUserId(), saved.getEmail());
+//        return ResponseEntity.ok("User synced successfully to Demo-Service1");
+//    }
 
     @PostMapping("/sync/profile-picture")
     public ResponseEntity<String> syncProfilePicture(@RequestBody ProfilePictureSyncDto syncDto) {

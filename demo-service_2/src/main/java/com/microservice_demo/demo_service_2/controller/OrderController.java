@@ -11,8 +11,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,8 +33,9 @@ public class OrderController {
     // USER + ADMIN endpoints
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto  , @AuthenticationPrincipal GatewayAuthentication auth) {
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreatedOrderDto dto) {
+        GatewayAuthentication auth = requireGatewayAuth();
         Long userId = auth.getUserId();
         dto.setUserId(userId);
         log.info("[USER|ADMIN] Create order — userId={} products={}",
@@ -40,19 +44,20 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<OrderDto> getOrder(@PathVariable Long orderId) {
         log.info("Get order — id={}", orderId);
         return ResponseEntity.ok(orderService.getOrder(orderId));
     }
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByUserId(
-            @PathVariable                      Long userId,
-            @RequestParam(defaultValue = "0")  int  page,
-            @AuthenticationPrincipal GatewayAuthentication auth,
-            @RequestParam(defaultValue = "10") int  size) {
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        GatewayAuthentication auth = requireGatewayAuth();
+
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
@@ -65,7 +70,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}/date-range")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Page<OrderDto>> getOrdersByDateRange(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -78,7 +83,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/cancel")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long orderId) {
         log.info("Cancel order — id={}", orderId);
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
@@ -86,7 +91,7 @@ public class OrderController {
 
 //    ADMIN - only endpoint
 @GetMapping("/status/{status}")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ROLE_ADMIN')")
 public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
         @PathVariable                      String status,
         @RequestParam(defaultValue = "0")  int    page,
@@ -96,7 +101,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
 }
 
     @PutMapping("/{orderId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<OrderDto> updateOrderStatus(
             @PathVariable Long   orderId,
             @RequestParam String status) {
@@ -105,7 +110,7 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
     }
 
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Map<String, Object>> getOrderStatistics() {
         log.info("[ADMIN] Get order statistics");
         return ResponseEntity.ok(orderService.getOrderStatistics());
@@ -124,6 +129,16 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
     public ResponseEntity<Boolean> userHasOrders(@PathVariable Long userId) {
         log.info("[Feign] User has orders check — userId={}", userId);
         return ResponseEntity.ok(orderService.userHasOrders(userId));
+    }
+
+    private GatewayAuthentication requireGatewayAuth() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof GatewayAuthentication auth)) {
+            log.error("[OrderController] Expected GatewayAuthentication in SecurityContext but got: {}",
+                    authentication != null ? authentication.getClass().getName() : "null");
+            throw new AccessDeniedException("Missing or invalid gateway authentication");
+        }
+        return auth;
     }
 }
 

@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "demo-service1")
+@FeignClient(name = "demo-service1", contextId = "demoService1SyncClient")
 public interface DemoService1FeignClient {
 
     @PostMapping("/api/users/sync")

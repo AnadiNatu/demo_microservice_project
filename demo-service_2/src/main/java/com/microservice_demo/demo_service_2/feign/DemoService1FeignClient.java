@@ -2,13 +2,14 @@ package com.microservice_demo.demo_service_2.feign;
 
 import com.microservice_demo.demo_service_2.dto.DemoEntity1Dto;
 import com.microservice_demo.demo_service_2.dto.UserDto;
+import com.microservice_demo.demo_service_2.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_2.dto.functionality.ProductInfoDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@FeignClient(name = "demo-service1")
+@FeignClient(name = "demo-service1", contextId = "demoService1ProductClient")
 public interface DemoService1FeignClient {
 
     @GetMapping("/api/users/{id}")

@@ -10,10 +10,10 @@ import java.util.Set;
 @Builder
 public class UserSyncDto {
 
-    private Long id;
+    private Long userId;
     private String username;
     private String email;
-    private String phoneNumber;
-    private Set<String> roles;
+    private String phone;
+    private Set<String> role;
     private String profilePicture;
 }

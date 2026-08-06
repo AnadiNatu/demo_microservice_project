@@ -7,30 +7,28 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderItemDto implements Serializable {
+public class ProductDto implements Serializable {
     private static final long serialVersionUID = 1L;
-    private Long orderItemId;
-    private Long orderId;
-    private Long productId;
 
+    private Long productId;
     private String productName;
     private String description;
+    private BigDecimal price;
+    private Integer stockQuantity;
     private String category;
-
-    private String brand;
-
     private String sku;
+    private String brand;
+    private Boolean active;
+    private Long createdByUserId;
+    private String createdByUsername;
+    private LocalDateTime createdOn;
+    private LocalDateTime updatedOn;
 
-    private Long creatorUserId;
-    private String creatorUsername;
-
-    private Integer quantity;
-    private BigDecimal unitPrice;
-    private BigDecimal subtotal;
+    private String imageUrl;
 }
-

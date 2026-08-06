@@ -65,6 +65,7 @@ public class ProductService {
                 .stockQuantity(dto.getStockQuantity())
                 .category(dto.getCategory())
                 .sku(dto.getSku())
+                .brand(dto.getBrand())
                 .createdBy(createdBy)
                 .active(true)
                 .build();
@@ -172,6 +173,7 @@ public class ProductService {
 //        return products.stream().map(this::toDto).collect(Collectors.toList());
 //     }
 
+    @Transactional(readOnly = true)
     public List<ProductInfoDto> getProductsByIds(List<Long> productIds) {
         return productRepository.findByProductIdIn(productIds)
                 .stream().map(p -> ProductInfoDto.builder()
@@ -276,6 +278,7 @@ public class ProductService {
                 .stockQuantity(product.getStockQuantity())
                 .category(product.getCategory())
                 .sku(product.getSku())
+                .brand(product.getBrand())
                 .active(product.getActive())
                 .imageUrl(product.getImageUrl())
                 .createdByUserId(createdByUserId)

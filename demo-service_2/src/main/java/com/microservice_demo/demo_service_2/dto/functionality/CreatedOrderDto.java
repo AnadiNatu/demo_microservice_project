@@ -55,4 +55,6 @@ public class CreatedOrderDto implements Serializable {
 
     @Size(max = 1000)
     private String notes;
+
+    private Long CreatedByUserId;
 }

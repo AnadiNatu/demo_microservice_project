@@ -20,6 +20,7 @@ public class ProductDto implements Serializable {
     private Integer stockQuantity;
     private String category;
     private String sku;
+    private String brand;
     private Boolean active;
     private Long createdByUserId;
     private String createdByUsername;
