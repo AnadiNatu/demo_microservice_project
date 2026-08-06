@@ -2,6 +2,9 @@ package com.microservice_demo.demo_service_1.service;
 
 import com.microservice_demo.demo_service_1.config.SupabaseConfig;
 //import org.apache.http.HttpEntity;
+import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
+import com.microservice_demo.demo_service_1.entity.Product;
+import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -25,10 +28,17 @@ public class ProductImageService {
     @Autowired
     private SupabaseConfig supabaseConfig;
 
+    @Autowired
+    private ProductRepository productRepository;
+
     public String uploadProductImage(Long productId , MultipartFile file) throws IOException {
         String extension = getExtension(file.getOriginalFilename());
+        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product Not FOund"));
+
         String filename = "product-" +productId+ "-" + UUID.randomUUID() + "." + extension;
         String uploadUrl = supabaseConfig.getStorageBaseUrl() + "/" + filename;
+        product.setImageUrl(uploadUrl);
+        productRepository.save(product);
 
         HttpHeaders headers = buildHeaders(file.getContentType());
         HttpEntity<byte[]> requestEntity = new HttpEntity<byte[]>(file.getBytes() , headers);
@@ -142,5 +152,22 @@ private HttpHeaders buildHeaders(String contentType) {
         int index = imageUrl.indexOf(marker);
         if (index == -1) return null;
         return imageUrl.substring(index + marker.length());
+    }
+
+    public ProductDto getProduct(Long productId) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new RuntimeException("Product not found with id: " + productId));
+
+        return ProductDto.builder()
+                .productId(product.getProductId())
+//                .productName(product.getProduct())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .category(product.getCategory())
+                .imageUrl(product.getImageUrl())
+                .build();
     }
 }

@@ -1,11 +1,13 @@
 package com.microservice_demo.demo_service_1.controller;
 
+import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_1.entity.Product;
 import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import com.microservice_demo.demo_service_1.service.ProductImageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -105,5 +107,16 @@ public class ProductImageController {
         String prefix = "product-" + productId + "-";
         String result = productImageService.listProductImages(prefix);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/get")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public ResponseEntity<Map<String, String>> getProductImage(@PathVariable Long productId) {
+//        log.info("[ProductController] Get image for productId={}", productId);
+        ProductDto product = productImageService.getProduct(productId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("imageUrl", product.getImageUrl());   // null if none uploaded — frontend handles that
+        return ResponseEntity.ok(response);
     }
 }

@@ -178,26 +178,26 @@ public class OrderService {
         throw new RuntimeException("Order service is currently unavailable. Please try again later.");
     }
 
-    @Stopwatch
-    @Cacheable(value = "orders" , key = "#orderId")
-    @CircuitBreaker(name = "demoService1" , fallbackMethod = "getOrderFallback")
-    public OrderDto getOrder(Long orderId){
-        log.info("Fetching order with ID : {}" , orderId);
-
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
-            log.error("Order not found : {}" , orderId);
-            return new ResourceNotFoundException("Order not found : " + orderId);
-        });
-
-//        List<ProductInfoDto> products = null;
-//        if (order.getProductIds() != null && !order.getProductIds().isEmpty()){
-//            log.info("Fetching product details for order {}" , orderId);
-//            products = demoService1Client.getProductsByIds(order.getProductIds());
-//        }
-
-        log.info("Order found : {}" , order.getOrderNumber());
-        return toDto(order);
-    }
+//    @Stopwatch
+//    @Cacheable(value = "orders" , key = "#orderId")
+//    @CircuitBreaker(name = "demoService1" , fallbackMethod = "getOrderFallback")
+//    public OrderDto getOrder(Long orderId){
+//        log.info("Fetching order with ID : {}" , orderId);
+//
+//        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
+//            log.error("Order not found : {}" , orderId);
+//            return new ResourceNotFoundException("Order not found : " + orderId);
+//        });
+//
+////        List<ProductInfoDto> products = null;
+////        if (order.getProductIds() != null && !order.getProductIds().isEmpty()){
+////            log.info("Fetching product details for order {}" , orderId);
+////            products = demoService1Client.getProductsByIds(order.getProductIds());
+////        }
+//
+//        log.info("Order found : {}" , order.getOrderNumber());
+//        return toDto(order);
+//    }
 
     @SuppressWarnings("unused")
     private OrderDto getOrderFallback(Long orderId, Exception e) {
@@ -206,7 +206,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
 
-        return toDto(order); // Return without product details
+        return toDto(order);
     }
 
     @Stopwatch
@@ -343,6 +343,14 @@ public class OrderService {
         stats.put("totalRevenue", totalRevenue);
         stats.put("generatedAt",  LocalDateTime.now());
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDto getOrder(Long orderId) {
+        log.info("Get order — id={}", orderId);
+        Order order = orderRepository.findByIdWithItems(orderId)   // fetch-join version, see below
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+        return toDto(order);
     }
 
     //    Private Helper
