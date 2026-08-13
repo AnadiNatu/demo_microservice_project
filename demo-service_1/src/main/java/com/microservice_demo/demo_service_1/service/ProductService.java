@@ -8,6 +8,8 @@ import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.exception.errors.BadRequestException;
 import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_1.feign.DemoService2FeignClient;
+import com.microservice_demo.demo_service_1.kafka.ProductEventProducer;
+import com.microservice_demo.demo_service_1.kafka.ProductOrderStatsCache;
 import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import com.microservice_demo.demo_service_1.repository.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +39,8 @@ public class ProductService {
     private final UserRepository userRepository;
     private final DemoService2FeignClient demoService2Client;
     private final CloudinaryServiceImpl cloudinaryService;
+    private final ProductEventProducer productEventProducer;
+    private final ProductOrderStatsCache productOrderStatsCache;
 
     @Transactional
     @CacheEvict(value = {"products" , "productPages" , "activeProducts" , "categoryProducts"} , allEntries = true)
@@ -72,6 +77,9 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         log.info("Product created successfully with ID : {} " , savedProduct);
+
+        // Kafka : fire-and-forget
+        productEventProducer.publishProductCreated(savedProduct);
 
         return toDto(savedProduct);
     }
@@ -139,10 +147,14 @@ public class ProductService {
                     return new ResourceNotFoundException("Product not found: " + productId);
                 });
 
+        Integer previousStock = product.getStockQuantity();
         product.setStockQuantity(quantity);
         Product updated = productRepository.save(product);
 
         log.info("Stock updated successfully for product: {}", product.getName());
+
+        // Kafka
+        productEventProducer.publishProductStockUpdated(productId, previousStock, quantity);
         return toDto(updated);
     }
 
@@ -198,6 +210,14 @@ public class ProductService {
      public Long getProductOrderCount(Long productId){
         log.info("Fetching order count for product ID : {} from Demo-Service 2" , productId);
 
+         Optional<Long> cached = Optional.ofNullable(productOrderStatsCache.getCount(productId));
+         if (cached.isPresent()) {
+             log.info("[KAFKA] Order count for product {} served from cache: {}", productId, cached.get());
+             return cached.get();
+         }
+
+         log.info("Fetching order count for product ID : {} from Demo-Service 2" , productId);
+         
         Long orderCount = demoService2Client.getProductOrderCount(productId);
         log.info("Product {} has been ordered {} times " , productId , orderCount);
 

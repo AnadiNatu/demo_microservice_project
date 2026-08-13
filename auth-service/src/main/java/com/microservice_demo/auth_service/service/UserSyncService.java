@@ -6,6 +6,7 @@ import com.microservice_demo.auth_service.dto.UserSyncDto;
 import com.microservice_demo.auth_service.entity.Users;
 import com.microservice_demo.auth_service.feign.DemoService1FeignClient;
 import com.microservice_demo.auth_service.feign.DemoService2FeignClient;
+import com.microservice_demo.auth_service.kafka.UserEventProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -21,13 +22,27 @@ public class UserSyncService {
 
     private final DemoService1FeignClient demoService1Client;
     private final DemoService2FeignClient demoService2Client;
-
+    private final UserEventProducer userEventProducer;
     private static final int DS2_MAX_ATTEMPTS = 6;
     private static final long DS2_INITIAL_DELAY = 5_000L;
     private static double DS2_BACKOFF_MULT = 1.5;
 
+//    public void syncToMicroservices(Users user){
+//        log.info("[SYNC] Starting user sync | username={}" , user.getUsername());
+//
+//        UserSyncDto syncDto = buildSyncDto(user);
+//
+//        syncToDS1(syncDto);
+//
+//        syncToDS2Async(syncDto);
+//    }
+
+    // new
     public void syncToMicroservices(Users user){
         log.info("[SYNC] Starting user sync | username={}" , user.getUsername());
+
+        // KAFKA: fire-and-forget publish, existing Feign sync below is unchanged
+        userEventProducer.publishUserRegistered(user);
 
         UserSyncDto syncDto = buildSyncDto(user);
 

@@ -9,6 +9,7 @@ import com.microservice_demo.demo_service_2.enums.OrderStatus;
 import com.microservice_demo.demo_service_2.exception.errors.BadRequestException;
 import com.microservice_demo.demo_service_2.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_2.feign.DemoService1FeignClient;
+import com.microservice_demo.demo_service_2.kafka.OrderEventProducer;
 import com.microservice_demo.demo_service_2.repository.OrderRepository;
 import com.microservice_demo.demo_service_2.repository.UserRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -40,6 +41,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final DemoService1FeignClient demoService1Client;
     private final ApplicationContext applicationContext;
+    private final OrderEventProducer orderEventProducer;
 
     private OrderService self() {
         return applicationContext.getBean(OrderService.class);
@@ -167,6 +169,8 @@ public class OrderService {
                 log.error("Stock update failed — productId={} error={}", itemDto.getProductId(), ex.getMessage());
             }
         }
+        // Kafka
+        orderEventProducer.publishOrderCreated(saved);
 
         return toDto(saved);
     }
@@ -183,7 +187,6 @@ public class OrderService {
 //    @CircuitBreaker(name = "demoService1" , fallbackMethod = "getOrderFallback")
 //    public OrderDto getOrder(Long orderId){
 //        log.info("Fetching order with ID : {}" , orderId);
-//
 //        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
 //            log.error("Order not found : {}" , orderId);
 //            return new ResourceNotFoundException("Order not found : " + orderId);
