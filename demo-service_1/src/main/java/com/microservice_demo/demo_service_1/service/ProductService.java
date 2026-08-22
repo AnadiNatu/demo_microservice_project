@@ -1,8 +1,10 @@
 package com.microservice_demo.demo_service_1.service;
 
+import com.microservice_demo.demo_service_1.aop.StopWatch;
 import com.microservice_demo.demo_service_1.dto.functionality.CreateProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductInfoDto;
+import com.microservice_demo.demo_service_1.dto.functionality.UpdateProductDto;
 import com.microservice_demo.demo_service_1.entity.Product;
 import com.microservice_demo.demo_service_1.entity.Users;
 import com.microservice_demo.demo_service_1.exception.errors.BadRequestException;
@@ -227,6 +229,80 @@ public class ProductService {
     private Long getOrderStatsFallback(Long productId , Exception ex){
         log.warn("Fallback triggered for getProductOrderCount - ProductID : {} , Error : {}" , productId , ex.getMessage());
         return 0L;
+    }
+    @Transactional
+    @CacheEvict(value = {"products", "productPages", "activeProducts", "categoryProducts"}, allEntries = true)
+    public ProductDto decrementStock(Long productId, Integer quantity) {
+
+        log.info("[INVENTORY] Decrement stock | productId={} quantity={}", productId, quantity);
+
+        // 1. Validate quantity
+        if (quantity == null || quantity <= 0) {
+            throw new BadRequestException("Quantity must be greater than zero");
+        }
+
+        // 2. Find product
+        Product product = productRepository.findById(productId).orElseThrow(() -> {log.error("[INVENTORY] Product not found | productId={}", productId);
+                    return new ResourceNotFoundException("Product not found: " + productId);
+                });
+
+        // 3. Validate current stock
+        Integer currentStock = product.getStockQuantity();
+
+        if (currentStock == null) {
+            throw new BadRequestException("Stock quantity is not initialized for product: " + productId);
+        }
+
+        if (currentStock < quantity) {
+            log.warn("[INVENTORY] Insufficient stock | productId={} available={} requested={}", productId, currentStock, quantity);
+            throw new BadRequestException("Insufficient stock. Available=" + currentStock + ", requested=" + quantity);
+        }
+
+        // 4. Calculate new stock
+        int newStock = currentStock - quantity;
+        product.setStockQuantity(newStock);
+
+        // 5. Save updated product
+        Product updatedProduct = productRepository.save(product);
+        log.info("[INVENTORY] Stock decremented successfully | " + "productId={} oldStock={} quantity={} newStock={}", productId, currentStock, quantity, updatedProduct.getStockQuantity());
+        return toDto(updatedProduct);
+    }
+
+    @StopWatch
+    @Transactional
+    @CacheEvict(value = {"products", "productPages", "activeProducts", "categoryProducts"}, allEntries = true)
+    public ProductDto updateProduct(Long productId, UpdateProductDto dto) {
+
+        log.info("[PRODUCT] Updating product | productId={}", productId);
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+        if (dto.getDescription() != null) {
+            product.setDescription(dto.getDescription());
+        }
+        if (dto.getPrice() != null) {
+            if (dto.getPrice().signum() < 0) {
+                throw new BadRequestException("Price cannot be negative");
+            }
+
+            product.setPrice(dto.getPrice());
+        }
+
+        if (dto.getStockQuantity() != null) {
+            if (dto.getStockQuantity() < 0) {
+                throw new BadRequestException("Stock quantity cannot be negative");
+            }
+            product.setStockQuantity(dto.getStockQuantity());
+        }
+
+        if (dto.getCategory() != null) {
+            product.setCategory(dto.getCategory());
+        }
+
+        if (dto.getBrand() != null) {
+            product.setBrand(dto.getBrand());
+        }
+        Product saved = productRepository.save(product);
+        log.info("[PRODUCT] Product updated successfully | productId={}", productId);
+        return toDto(saved);
     }
 
     @Transactional

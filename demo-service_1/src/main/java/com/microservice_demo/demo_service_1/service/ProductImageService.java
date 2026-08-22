@@ -1,13 +1,16 @@
 package com.microservice_demo.demo_service_1.service;
 
+import com.microservice_demo.demo_service_1.aop.StopWatch;
 import com.microservice_demo.demo_service_1.config.SupabaseConfig;
 //import org.apache.http.HttpEntity;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_1.entity.Product;
+import com.microservice_demo.demo_service_1.exception.errors.ResourceNotFoundException;
 import com.microservice_demo.demo_service_1.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,9 +40,11 @@ public class ProductImageService {
         Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found : " + productId));
         System.out.println(product);
         String extension = getExtension(file.getOriginalFilename());
-        String filename = "product-" + productId + "-" + UUID.randomUUID() + "." + extension;
-        // Upload endpoint (NOT public)
+//        String filename = "product-" + productId + "-" + UUID.randomUUID() + "." + extension;
+        String filename = "products/" + productId + "/" + UUID.randomUUID() + "." + extension;
         String uploadUrl = supabaseConfig.getStorageBaseUrl() + "/" + filename;
+        // Upload endpoint (NOT public)
+//        String uploadUrl = supabaseConfig.getStorageBaseUrl() + "/" + filename;
         HttpHeaders headers = buildHeaders(file.getContentType());
 
         HttpEntity<byte[]> request = new HttpEntity<>(file.getBytes(), headers);
@@ -59,8 +64,8 @@ public class ProductImageService {
             throw ex;
         }
 
+//        String publicUrl = supabaseConfig.getPublicUrl(filename);
         String publicUrl = supabaseConfig.getPublicUrl(filename);
-
         product.setImageUrl(publicUrl);
         productRepository.save(product);
 
@@ -68,17 +73,22 @@ public class ProductImageService {
     }
 
 
-    public String updateProductImage(Long productId, MultipartFile file, String oldImageUrl)
+    @StopWatch
+    @Transactional
+    public String updateProductImage(Long productId, MultipartFile file)
             throws IOException {
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
 
-        if (oldImageUrl != null && !oldImageUrl.isBlank()) {
+        String oldUrl = product.getImageUrl();
 
-            String oldFile = extractFileNameFromUrl(oldImageUrl);
+        if (oldUrl != null && !oldUrl.isBlank()) {
 
-            if (oldFile != null) {
-                deleteImageByFileName(oldFile);
+            String oldFileName = extractFileNameFromUrl(oldUrl);
+            if (oldFileName != null) {
+                deleteImageByFileName(oldFileName);
             }
         }
+
         return uploadProductImage(productId, file);
     }
 

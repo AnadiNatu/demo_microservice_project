@@ -60,14 +60,15 @@ public class ProductImageController {
     @PutMapping("/update")
     public ResponseEntity<Map<String, String>> updateImage(
             @PathVariable Long productId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "oldImageUrl", required = false) String oldImageUrl) {
+            @RequestParam("file") MultipartFile file
+//            @RequestParam(value = "oldImageUrl", required = false) String oldImageUrl
+    ) {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File must not be empty"));
         }
         try {
-            String imageUrl = productImageService.updateProductImage(productId, file, oldImageUrl);
+            String imageUrl = productImageService.updateProductImage(productId, file);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Image updated successfully");
             response.put("imageUrl", imageUrl);

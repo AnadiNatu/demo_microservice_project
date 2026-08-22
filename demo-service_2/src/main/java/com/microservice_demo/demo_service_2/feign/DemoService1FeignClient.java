@@ -38,4 +38,10 @@ public interface DemoService1FeignClient {
 
     @GetMapping("/api/products/{productId}/available")
     Boolean isProductAvailable(@PathVariable("productId") Long productId);
+
+    @PutMapping("/api/products/{productId}/stock/decrement")
+    ProductInfoDto decrementProductStock(
+            @PathVariable("productId") Long productId,
+            @RequestParam("quantity") Integer quantity
+    );
 }

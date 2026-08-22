@@ -3,6 +3,7 @@ package com.microservice_demo.demo_service_1.controller;
 import com.microservice_demo.demo_service_1.dto.functionality.CreateProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductDto;
 import com.microservice_demo.demo_service_1.dto.functionality.ProductInfoDto;
+import com.microservice_demo.demo_service_1.dto.functionality.UpdateProductDto;
 import com.microservice_demo.demo_service_1.security.GatewayAuthentication;
 import com.microservice_demo.demo_service_1.service.ProductService;
 import jakarta.validation.Valid;
@@ -65,6 +66,43 @@ public class ProductController {
         log.info("[ProductController] ✅ Product deactivated");
         return ResponseEntity.ok(deactivated);
     }
+
+    @PutMapping("/{productId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ProductDto> updateProduct(@PathVariable Long productId, @Valid @RequestBody UpdateProductDto dto) {
+
+        log.info("[ProductController] [ADMIN] Update product | productId={}", productId);
+
+        ProductDto updated = productService.updateProduct(productId, dto);
+
+        log.info("[ProductController] Product updated | productId={}", productId);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{productId}/stock/decrement")
+    public ResponseEntity<ProductDto> decrementStock(
+            @PathVariable Long productId,
+            @RequestParam Integer quantity) {
+
+        log.info(
+                "[ProductController] [INVENTORY] Decrement stock | productId={} quantity={}",
+                productId,
+                quantity
+        );
+
+        ProductDto updated =
+                productService.decrementStock(productId, quantity);
+
+        log.info(
+                "[ProductController] [INVENTORY] Stock decremented successfully | " +
+                        "productId={} newStock={}",
+                productId,
+                updated.getStockQuantity()
+        );
+
+        return ResponseEntity.ok(updated);
+    }
+
 
 
 //    @PostMapping("/{productId}/image")
@@ -135,23 +173,16 @@ public class ProductController {
 
     @PutMapping("/{productId}/stock")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public ResponseEntity<ProductDto> updateStock(
-            @PathVariable Long productId,
-            @RequestParam Integer quantity) {
+    public ResponseEntity<ProductDto> updateStock(@PathVariable Long productId, @RequestParam Integer quantity) {
+
         log.info("[ProductController] Update stock - productId={} quantity={}", productId, quantity);
+
         ProductDto updated = productService.updateStock(productId, quantity);
-        log.info("[ProductController] ✅ Stock updated successfully");
+
+        log.info("[ProductController] Stock updated successfully");
         return ResponseEntity.ok(updated);
     }
 
-//    @PostMapping("/list")
-//    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-//    public ResponseEntity<List<ProductDto>> getProductsByIds(@RequestBody List<Long> productIds) {
-//        log.info("[ProductController] Batch fetch products - IDs: {}", productIds);
-//        List<ProductDto> products = productService.getProductsByIds(productIds);
-//        log.info("[ProductController] ✅ Found {} products out of {} requested", products.size(), productIds.size());
-//        return ResponseEntity.ok(products);
-//    }
 @PostMapping("/list")
 @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
 public ResponseEntity<List<ProductInfoDto>> getProductsByIds(@RequestBody List<Long> productIds) {

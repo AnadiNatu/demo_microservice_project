@@ -26,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -48,9 +49,9 @@ public class OrderService {
     }
 
 //    @CacheEvict(value = "orders" , allEntries = true)
-
-    //    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
+//    @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderFallback")
 //    @Retry(name = "demoService1")
+    @Stopwatch
     @Transactional
     @Caching(evict = { // added: invalidate list caches so the new order is visible immediately
             @CacheEvict(value = "userOrders", allEntries = true),
@@ -59,22 +60,51 @@ public class OrderService {
     public OrderDto createOrder(CreatedOrderDto dto) {
         log.info("Creating order — userId={} itemCount={}", dto.getUserId(), dto.getItems().size());
 
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            throw new BadRequestException(
+                    "Order must contain at least one item"
+            );
+        }
+
         // 1. Validate user exists locally
         Users user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "User not synced in demo-service2. userId=" + dto.getUserId()));
 
         // 2. Extract productIds from items for the Feign call
-        List<Long> productIds = dto.getItems().stream()
-                .map(CreateOrderItemDto::getProductId)
-                .collect(Collectors.toList());
+//        List<Long> productIds = dto.getItems().stream()
+//                .map(CreateOrderItemDto::getProductId)
+//                .collect(Collectors.toList());
 
-        if (productIds.isEmpty()) {
-            throw new BadRequestException("Order must contain at least one item");
+//        if (productIds.isEmpty()) {
+//            throw new BadRequestException("Order must contain at least one item");
+//        }
+
+        for (CreateOrderItemDto item : dto.getItems()) {
+
+            if (item.getProductId() == null) {
+                throw new BadRequestException(
+                        "Product ID cannot be null"
+                );
+            }
+
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new BadRequestException(
+                        "Quantity must be greater than zero for productId="
+                                + item.getProductId()
+                );
+            }
         }
 
-        // 3. Delegate the remote calls to the circuit-broken method
-        return self().createOrderWithRemoteCalls(dto, user, productIds);
+        // 4. Extract product IDs
+        List<Long> productIds = dto.getItems()
+                .stream()
+                .map(CreateOrderItemDto::getProductId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        return self().createOrderWithRemoteCalls(dto, user, productIds
+        );
     }
 
     @CircuitBreaker(name = "demoService1", fallbackMethod = "createOrderWithRemoteCallsFallback")
@@ -104,31 +134,36 @@ public class OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CreateOrderItemDto itemDto : dto.getItems()) {
-            Long pid = itemDto.getProductId();
-            Integer qty = itemDto.getQuantity();
-            ProductInfoDto product = productMap.get(pid);
+            Long productId = itemDto.getProductId();
+            Integer quantity = itemDto.getQuantity();
+            ProductInfoDto product = productMap.get(productId);
 
             if (product == null) {
-                throw new ResourceNotFoundException("Product not found in DS1: id=" + pid);
+                throw new ResourceNotFoundException("Product not found in demo-service1: id=" + productId);
             }
-            if (product.getStockQuantity() == null || product.getStockQuantity() < qty) {
-                throw new BadRequestException("Insufficient stock for productId=" + pid
-                        + " available=" + product.getStockQuantity() + " requested=" + qty);
+            Integer currentStock = product.getStockQuantity();
+
+            if (currentStock == null) {
+                throw new BadRequestException("Stock quantity is not initialized for productId=" + productId);
+            }
+
+            if (currentStock < quantity) {
+                throw new BadRequestException("Insufficient stock for productId=" + productId + " available=" + currentStock + " requested=" + quantity);
             }
 
             BigDecimal unitPrice = product.getPrice();
-            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(qty));
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
             total = total.add(subtotal);
 
             OrderItem item = OrderItem.builder()
-                    .productId(pid)
+                    .productId(productId)
                     .productName(product.getProductName())
                     .category(product.getCategory())
                     .brand(product.getBrand())
                     .sku(product.getSku())
                     .creatorUserId(product.getCreatorUserId())
                     .creatorUsername(product.getCreatorUsername())
-                    .quantity(qty)
+                    .quantity(quantity)
                     .unitPrice(unitPrice)
                     .subtotal(subtotal)
                     .build();
@@ -136,7 +171,25 @@ public class OrderService {
             orderItems.add(item);
         }
 
-        // Persist order
+        // 4. DECREMENT STOCK IN DEMO-SERVICE
+        log.info("[INVENTORY] Starting stock decrement for order | userId={}", dto.getUserId());
+
+        for (CreateOrderItemDto itemDto : dto.getItems()) {
+            Long productId = itemDto.getProductId();
+            Integer quantity = itemDto.getQuantity();
+
+            try {
+                log.info("[INVENTORY] Decrementing stock | " + "productId={} quantity={}", productId, quantity);
+                ProductInfoDto updatedProduct = demoService1Client.decrementProductStock(productId, quantity);
+                log.info("[INVENTORY] Stock decrement successful | " + "productId={} quantity={} newStock={}", productId, quantity, updatedProduct.getStockQuantity());
+
+            } catch (Exception ex) {
+                log.error("[INVENTORY] Stock decrement FAILED | " + "productId={} quantity={}", productId, quantity, ex);
+                throw new BadRequestException("Unable to decrement stock for productId=" + productId + ". Order was not created.");
+            }
+        }
+
+        // 5. BUILD ORDER
         Order order = Order.builder()
                 .orderNumber("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .userId(dto.getUserId())
@@ -154,23 +207,13 @@ public class OrderService {
                 .orderDate(LocalDateTime.now())
                 .build();
 
-        // Bidirectional link
+        // 6. CONNECT ORDER ITEMS
         orderItems.forEach(order::addItem);
-        Order saved = orderRepository.save(order);
-        log.info("Order saved — {}", saved.getOrderNumber());
 
-        // Decrement stock in DS1 (best-effort — log on failure but do not roll back)
-        for (CreateOrderItemDto itemDto : dto.getItems()) {
-            ProductInfoDto product = productMap.get(itemDto.getProductId());
-            int newStock = product.getStockQuantity() - itemDto.getQuantity();
-            try {
-                demoService1Client.updateProductStock(itemDto.getProductId(), newStock);
-            } catch (Exception ex) {
-                log.error("Stock update failed — productId={} error={}", itemDto.getProductId(), ex.getMessage());
-            }
-        }
-        // Kafka
-        orderEventProducer.publishOrderCreated(saved);
+        // 7. SAVE ORDER
+        Order saved = orderRepository.save(order);
+
+        log.info("[ORDER] Order created successfully | " + "orderId={} orderNumber={} total={}", saved.getOrderId(), saved.getOrderNumber(), saved.getTotalAmount());
 
         return toDto(saved);
     }
@@ -356,6 +399,7 @@ public class OrderService {
         return toDto(order);
     }
 
+
     //    Private Helper
     private Order requireOrder(Long id) {
         return orderRepository.findById(id)
@@ -416,5 +460,88 @@ public class OrderService {
                 .deliveryDate(order.getDeliveryDate())
                 .cancelledDate(order.getCancelledDate())
                 .build();
+    }
+
+    @Stopwatch
+    @Transactional(readOnly = true)
+    public List<OrderLogDto> getOrderLogsByProduct(String productName) {
+
+        log.info("[ORDER-LOGS] START | productName={}", productName);
+
+        StopWatch sw = new StopWatch("getOrderLogsByProduct");
+        sw.start();
+
+        String search = productName.trim().toLowerCase();
+
+        List<OrderLogDto> result = orderRepository.findAll()
+                .stream()
+                .filter(order -> order.getItems() != null)
+                .flatMap(order -> order.getItems().stream()
+                        .filter(item -> item.getProductName() != null && item.getProductName().toLowerCase().contains(search))
+                        .map(item -> OrderLogDto.builder()
+                                .orderId(order.getOrderId())
+                                .productName(item.getProductName())
+                                .userName(resolveUserName(order.getUserId()))
+                                .orderQuantity(item.getQuantity())
+                                .orderPrice(item.getSubtotal())
+                                .orderStatus(order.getOrderStatus().name())
+                                .deliveredOn(order.getDeliveryDate())
+                                .productInventory(null)
+                                .productOrderQuantity(item.getQuantity())
+                                .build()
+                        )).toList();
+
+        sw.stop();
+
+        log.info(
+                "[ORDER-LOGS] SUCCESS | productName={} | results={} | duration={}ms",
+                productName,
+                result.size(),
+                sw.getTotalTimeMillis()
+        );
+
+        return result;
+    }
+
+    @Stopwatch
+    @Transactional(readOnly = true)
+    public List<OrderLogDto> getOrderLogsByUsers() {
+
+        log.info("[ORDER-LOGS] START | all users");
+
+        StopWatch sw = new StopWatch("getOrderLogsByUsers");
+        sw.start();
+
+        List<OrderLogDto> result = orderRepository.findAll()
+                .stream()
+                .filter(order -> order.getItems() != null)
+                .flatMap(order -> order.getItems().stream()
+                        .map(item -> OrderLogDto.builder()
+                                .orderId(order.getOrderId())
+                                .productName(item.getProductName())
+                                .userName(resolveUserName(order.getUserId()))
+                                .orderQuantity(item.getQuantity())
+                                .orderPrice(item.getSubtotal())
+                                .orderStatus(order.getOrderStatus().name())
+                                .deliveredOn(order.getDeliveryDate())
+                                .productInventory(null)
+                                .productOrderQuantity(item.getQuantity())
+                                .build()
+                        )
+                )
+                .toList();
+
+        sw.stop();
+        log.info("[ORDER-LOGS] SUCCESS | results={} | duration={}ms", result.size(), sw.getTotalTimeMillis());
+        return result;
+    }
+
+    private String resolveUserName(Long userId) {
+
+        Users user = userRepository.findById(userId).orElse(null);
+
+        return user != null
+                ? user.getName()
+                : "Unknown";
     }
 }

@@ -2,6 +2,7 @@ package com.microservice_demo.demo_service_2.controller;
 
 import com.microservice_demo.demo_service_2.dto.functionality.CreatedOrderDto;
 import com.microservice_demo.demo_service_2.dto.functionality.OrderDto;
+import com.microservice_demo.demo_service_2.dto.functionality.OrderLogDto;
 import com.microservice_demo.demo_service_2.security.GatewayAuthentication;
 import com.microservice_demo.demo_service_2.service.OrderService;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -129,6 +131,20 @@ public ResponseEntity<Page<OrderDto>> getOrdersByStatus(
     public ResponseEntity<Boolean> userHasOrders(@PathVariable Long userId) {
         log.info("[Feign] User has orders check — userId={}", userId);
         return ResponseEntity.ok(orderService.userHasOrders(userId));
+    }
+
+    @GetMapping("/logs/product")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<OrderLogDto>> getOrderLogsByProduct(@RequestParam String productName) {
+        log.info("[ADMIN] Get order logs by product | productName={}", productName);
+        return ResponseEntity.ok(orderService.getOrderLogsByProduct(productName));
+    }
+
+    @GetMapping("/logs/users")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<OrderLogDto>> getOrderLogsByUsers() {
+        log.info("[ADMIN] Get order logs by user | userName={}");
+        return ResponseEntity.ok(orderService.getOrderLogsByUsers());
     }
 
     private GatewayAuthentication requireGatewayAuth() {
